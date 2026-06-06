@@ -56,5 +56,5 @@ Alternatively, just run `./test.sh` from the root directory.
 
 ### Android AOSP Integration
 
-The project includes an `Android.mk` to build natively within the Android tree. 
-Make sure `smbios-parser` is cloned alongside `libhwdb-sensor` as a sibling directory, and add `libhwdb_sensor` to your `LOCAL_STATIC_LIBRARIES` in your module.
+The project includes an `Android.bp` to build natively within the Android tree using Soong. 
+Make sure `smbios-parser` is cloned alongside `libhwdb-sensor` as a sibling directory, and add `libhwdb_sensor` to your `static_libs` in your module (it supports `vendor_available` targets for Android 11+).

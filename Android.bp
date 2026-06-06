@@ -1,0 +1,15 @@
+cc_library_static {
+    name: "libhwdb_sensor",
+    vendor_available: true,
+    min_sdk_version: "30",
+    srcs: [
+        "src/hwdb_parser.cpp",
+        "src/modalias.cpp",
+    ],
+    export_include_dirs: ["include"],
+    static_libs: ["libsmbios_parser"],
+    cppflags: [
+        "-std=c++14",
+        "-fexceptions",
+    ],
+}
