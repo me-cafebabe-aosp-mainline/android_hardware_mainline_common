@@ -58,3 +58,9 @@ Alternatively, just run `./test.sh` from the root directory.
 
 The project includes an `Android.bp` to build natively within the Android tree using Soong. 
 Make sure `smbios-parser` is cloned alongside `libhwdb-sensor` as a sibling directory, and add `libhwdb_sensor` to your `static_libs` in your module (it supports `vendor_available` targets for Android 11+).
+
+## License
+
+This is an open-source project by BlissLabs (https://blisslabs.org), released and protected under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
+
+Copyright © 2026 BlissLabs.
