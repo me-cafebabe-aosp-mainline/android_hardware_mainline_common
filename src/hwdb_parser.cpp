@@ -119,6 +119,11 @@ hwdb_sensor_context* hwdb_sensor_init(const char* custom_path) {
                 return ctx;
             }
         }
+        
+        // Fallback Android path if property isn't set
+        if (parse_hwdb_file(ctx, "/vendor/etc/60-sensor.hwdb")) {
+            return ctx;
+        }
 #endif
         // Try default Linux locations
         const char* default_paths[] = {
