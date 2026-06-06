@@ -19,14 +19,24 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    const char* value = hwdb_sensor_get_property(ctx, modalias, property_key);
+    char* full_modalias = hwdb_sensor_build_modalias(modalias);
+    if (!full_modalias) {
+        std::cerr << "Failed to build full modalias string.\n";
+        hwdb_sensor_free(ctx);
+        return 1;
+    }
+
+    std::cout << "Built modalias string: " << full_modalias << "\n";
+
+    const char* value = hwdb_sensor_get_property(ctx, full_modalias, property_key);
     if (value) {
         std::cout << "Match found!\n";
         std::cout << property_key << "=" << value << "\n";
     } else {
-        std::cout << "No match found for modalias: " << modalias << "\n";
+        std::cout << "No match found for modalias: " << full_modalias << "\n";
     }
 
+    free(full_modalias);
     hwdb_sensor_free(ctx);
     return 0;
 }
