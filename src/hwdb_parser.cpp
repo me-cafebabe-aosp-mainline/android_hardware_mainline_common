@@ -55,7 +55,15 @@ static bool parse_hwdb_file(hwdb_sensor_context* ctx, const char* path) {
     bool collecting_properties = false;
 
     while (std::getline(file, line)) {
-        // Remove trailing whitespace and comments
+        // Skip full-line comments (lines starting with '#'),
+        // matching systemd's hwdb parser behavior.
+        if (!line.empty() && line[0] == '#') {
+            continue;
+        }
+
+        // Strip trailing comment: everything after '#' is a comment.
+        // This handles match lines with trailing descriptions like:
+        //   sensor:modalias:acpi:BOSC0200:*:dmi:...:*    # Spin 1
         size_t comment_pos = line.find('#');
         if (comment_pos != std::string::npos) {
             line = line.substr(0, comment_pos);
