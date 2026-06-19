@@ -6,3 +6,5 @@
 | interfaces/usb/gadget/mainline | https://github.com/LineageOS/android_hardware_mediatek/tree/lineage-22.2/aidl/gadget |
 | interfaces/vibrator/glodroid | https://github.com/GloDroid/glodroid_configuration/tree/main/hals/vibrator |
 | libhardware/gralloc/gbm | https://github.com/robherring/gbm_gralloc |
+| libraries/libhwdb-sensor | https://github.com/hmtheboy154/libhwdb-sensor |
+| libraries/smbios-parser | https://github.com/android-generic/smbios-parser |
