@@ -47,12 +47,12 @@ Assisted-by: <Agent>:<Model ID>
 ```
 
 - `Assisted-by: LLM` is mandatory on every commit produced with AI
-  assistance, per the LineageOS rule requiring it.
+  assistance.
 - `Assisted-by: <Agent>:<Model ID>` identifies the specific tool and model,
   e.g. `Assisted-by: OpenCode:anthropic/claude-sonnet-5`.
 
-`Change-Id` is appended automatically by the local `commit-msg` hook; do not
-add it by hand.
+Older commits carry a `Change-Id` trailer, added by a `commit-msg` hook from
+the Gerrit days. It is no longer needed; do not add or edit one by hand.
 
 ## Applying the message
 

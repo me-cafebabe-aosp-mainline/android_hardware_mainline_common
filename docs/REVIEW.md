@@ -5,8 +5,8 @@ repository — someone else's patch, or your own before handing it to a human
 maintainer — whether the review is done by a human or an AI agent.
 
 This pairs with `vendor/mainline/docs/review.md` (relative to the AOSP tree
-root): that document is the general review philosophy and Gerrit vote
-cheatsheet for LineageOS mainline device repositories; this one
+root): that document is the general review philosophy and severity
+cheatsheet for the mainline device repositories; this one
 operationalizes the same checks specifically for `hardware/mainline/common`.
 
 Go through all seven checks below for every commit; report every issue you
@@ -41,7 +41,7 @@ Consistency cuts across the whole change, not just source formatting:
   does — no more, no less.
 - Per `vendor/mainline/docs/review.md`, inconsistent style compared to
   other same/similar code or commit messages in the same project is itself
-  a `Code-Review -1`.
+  something to fix before merge (a minor issue in its cheatsheet).
 
 ## 3. Core principle of the affected component
 
@@ -117,10 +117,10 @@ cannot verify a change that way either — verify by evidence instead:
 - A failing check is a quick, well-understood fix: ask for that specific
   change, not a vague "needs work".
 - Check 3 or 4 fails in a way that isn't a quick fix, or check 6 can't be
-  satisfied: do not approve — this is the same bar as a `Code-Review -2` in
+  satisfied: do not approve — this is the same bar as "do not merge (major)" in
   `vendor/mainline/docs/review.md`'s cheatsheet.
 
 Applying these checks to a commit that is *already merged* (e.g. you find a
-gap while reviewing something else nearby) has no vote to cast — follow
+gap while reviewing something else nearby) has nothing to approve or reject — follow
 `docs/FIXUPS.md` instead, which does not involve rewriting the merged
 commit.
