@@ -35,6 +35,7 @@ to the `ISensorBackend` interface. Everything ships in the vendor APEX
 | `backends/iio/`                             | IIO backend: `IioBackend`, `IioDevice`, `IioSensor`, `IioChannel`, `IioTrigger`, `IioTypes` |
 | `backends/input/`                           | Input backend: `InputBackend`, `InputDevice`                          |
 | `backends/mock/`                            | Mock backend (fallback only)                                          |
+| `aidl/`                                     | `vendor.mainline.sensors`: `IVirtualSensors`, the control interface of the virtual backend for the settings app, and its framework compatibility matrix entry. Not frozen yet |
 
 Build modules: `android.hardware.sensors-service.mainline` (binary),
 `libsensors_mainline_frontend` (static), `libsensors_mainline_headers`

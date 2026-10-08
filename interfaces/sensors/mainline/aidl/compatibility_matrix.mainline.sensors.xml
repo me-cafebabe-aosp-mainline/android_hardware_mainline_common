@@ -1,0 +1,14 @@
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<compatibility-matrix version="2.0" type="framework">
+    <hal format="aidl" optional="true">
+        <name>vendor.mainline.sensors</name>
+        <version>1</version>
+        <interface>
+            <name>IVirtualSensors</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+</compatibility-matrix>
