@@ -5,28 +5,24 @@
 
 // Settings app of the mainline audio HAL, see README.md. It ships inside the
 // HAL's APEX, which makes it a vendor app: it is built against the module SDK
-// (no hidden APIs, no platform certificate), its privileged permission
-// allowlist goes to /vendor/etc/permissions, and its SELinux domain comes from
-// the device's vendor policy.
+// (no hidden APIs, no platform certificate), it must not request privileged
+// permissions (Android grants a vendor app none that lack vendorPrivileged),
+// and its SELinux domain comes from the device's vendor policy.
 android_app {
     name: "MainlineAudioSettings",
 
     srcs: ["src/**/*.kt"],
     resource_dirs: ["res"],
 
-    // System APIs (AudioManager routing preferences) and
-    // ServiceManager.waitForDeclaredService() for IControl.
+    // ServiceManager.waitForDeclaredService() for IControl. Privileged only so
+    // that the vendor seapp_contexts entry matches the preinstalled app alone.
     sdk_version: "module_current",
     privileged: true,
 
     static_libs: [
-        "androidx.activity_activity-ktx",
-        "androidx.appcompat_appcompat",
-        "androidx.fragment_fragment-ktx",
+        "MainlineAudioSettingsCommon",
         "androidx.lifecycle_lifecycle-runtime-ktx",
         "androidx.lifecycle_lifecycle-viewmodel-ktx",
-        "androidx.preference_preference",
-        "com.google.android.material_material",
         "kotlinx_coroutines_android",
         "vendor.mainline.audio-V1-java",
     ],
@@ -36,13 +32,4 @@ android_app {
     },
 
     apex_available: ["com.android.hardware.audio.mainline"],
-}
-
-// Vendor apps take their privileged permission allowlist from the vendor
-// partition, also when they live in an APEX.
-prebuilt_etc {
-    name: "privapp-permissions-vendor.mainline.audio.settings.xml",
-    src: "privapp-permissions-vendor.mainline.audio.settings.xml",
-    sub_dir: "permissions",
-    vendor: true,
 }

@@ -1,0 +1,4 @@
+# The app's classes are instantiated by name from the manifest.
+-keep class vendor.mainline.audio.routing.** {
+  *;
+}

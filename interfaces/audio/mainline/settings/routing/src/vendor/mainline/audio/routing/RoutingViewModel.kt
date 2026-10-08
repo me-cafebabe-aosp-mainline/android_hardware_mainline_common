@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package vendor.mainline.audio.settings
+package vendor.mainline.audio.routing
 
 import android.app.Application
 import android.media.AudioDeviceCallback
@@ -25,8 +25,7 @@ import kotlinx.coroutines.withContext
 class RoutingViewModel(application: Application) : AndroidViewModel(application) {
     data class Selection(val options: List<DeviceOption>, val choice: AudioRouting.Choice)
 
-    /** [halAvailable]: the device runs the mainline audio HAL, so its pages apply. */
-    data class State(val output: Selection, val input: Selection, val halAvailable: Boolean)
+    data class State(val output: Selection, val input: Selection)
 
     private val routing = AudioRouting(application)
     private val audioManager = application.getSystemService(AudioManager::class.java)
@@ -61,7 +60,7 @@ class RoutingViewModel(application: Application) : AndroidViewModel(application)
     private fun change(block: () -> Unit) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { block() }
-            AudioSummaryProvider.notifyChanged(getApplication())
+            RoutingSummaryProvider.notifyChanged(getApplication())
             refresh()
         }
     }
@@ -72,7 +71,7 @@ class RoutingViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private suspend fun readState(): State {
-        val labels = DeviceLabels(getApplication(), HalControl.status())
+        val labels = DeviceLabels(getApplication())
         return withContext(Dispatchers.IO) {
             State(
                 output =
@@ -83,13 +82,7 @@ class RoutingViewModel(application: Application) : AndroidViewModel(application)
                         labels,
                     ),
                 input =
-                    selection(
-                        routing.inputs(),
-                        routing.inputChoice(),
-                        routing.savedInput(),
-                        labels,
-                    ),
-                halAvailable = HalControl.isDeclared,
+                    selection(routing.inputs(), routing.inputChoice(), routing.savedInput(), labels),
             )
         }
     }

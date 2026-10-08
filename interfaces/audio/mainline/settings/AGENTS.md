@@ -1,4 +1,4 @@
-# Notes for AI agents working on the settings app
+# Notes for AI agents working on the settings apps
 
 > Part of the mainline audio HAL: read `../AGENTS.md` first, then
 > `README.md` here. Commit subjects use the HAL's prefix,
@@ -6,13 +6,27 @@
 
 ## Layout
 
-- `AudioSettingsActivity.kt`: the activity Settings opens; sub-pages are
-  fragments on its back stack (`Preference.fragment`).
+`common/` (`MainlineAudioSettingsCommon`, used by both apps):
+
+- `SettingsActivity.kt`: the frame of the activities Settings opens; sub-pages
+  are fragments on its back stack (`Preference.fragment`).
 - `SettingsFragment.kt`: base of every page (insets, footer).
-- `AudioSettingsFragment.kt`, `RoutingViewModel.kt`: default output / input.
+- `RadioPreference.kt`, layouts, the theme.
+
+`routing/` (`MainlineAudioRouting`, product app):
+
+- `RoutingActivity.kt`, `RoutingFragment.kt`, `RoutingViewModel.kt`: default
+  output / input.
 - `AudioRouting.kt`: the only code that changes AudioService routing
   preferences, and their storage.
 - `AudioDevices.kt`: device identity (`DeviceId`) and names (`DeviceLabels`).
+- `RoutingSummaryProvider.kt`: the tile summary.
+- `BootReceiver.kt`: restores the routing preferences at boot.
+
+This directory (`MainlineAudioSettings`, APEX app):
+
+- `AudioSettingsActivity.kt`, `AudioSettingsFragment.kt`: the entry page.
+- `AudioDevices.kt`: the HAL endpoint behind an `AudioDeviceInfo`.
 - `DiagnosticsFragment.kt`, `DiagnosticsViewModel.kt`, `StatusText.kt`:
   Hardware › Sound cards, the report.
 - `SpeakersFragment.kt`, `OutputFragment.kt`, `OutputViewModel.kt`:
@@ -21,19 +35,23 @@
 - `HalSettingsFragment.kt`, `HalSettingsViewModel.kt`,
   `ConfirmSettingsDialogFragment.kt`: Hardware › Advanced, the trial dialog.
 - `HalControl.kt`: the only code that talks to `IControl`.
-- `AudioSummaryProvider.kt`: the Settings tile summary.
-- `BootReceiver.kt`: restores the routing preferences at boot.
 
 ## Invariants
 
-- The app is a vendor app in the HAL's APEX. Use system / module APIs only
+- The APEX app is a vendor app. Use system / module APIs only
   (`sdk_version: "module_current"`), never hidden APIs, and never require the
   platform certificate: both would tie the vendor partition to one system
   image.
-- A new privileged permission needs an entry in
-  `privapp-permissions-vendor.mainline.audio.settings.xml`; a new HAL call
-  may need the device's SELinux policy (`device/mainline/common/sepolicy/vendor`)
-  to follow.
+- The APEX app must never request a privileged permission. Android grants a
+  vendor app only `vendorPrivileged` ones (few exist), and an unlisted
+  privileged permission makes `system_server` refuse to boot. A feature that
+  needs one belongs in the routing app (or another system side app), whose
+  allowlist is `routing/privapp-permissions-vendor.mainline.audio.routing.xml`.
+- Only the APEX app talks to the HAL: the routing app runs as `priv_app`,
+  which may not use vendor services. A new HAL call may need the device's
+  SELinux policy (`device/mainline/common/sepolicy/vendor`) to follow.
+- `common/` stays free of AIDL and of anything one app alone needs, and on
+  `sdk_version: "system_current"`, so that both apps can use it.
 - Every Binder call to the HAL goes through `HalControl` and runs off the main
   thread. The HAL can be restarting or absent: everything must work, with
   less detail, when `HalControl` returns null.
@@ -42,8 +60,8 @@
   cancelable, and the app never keeps a trial without the user's Keep.
 - Match devices by `DeviceId` (role, type, address), never by
   `AudioDeviceInfo.getId()`, which changes when a device reconnects.
-- The tile's `com.android.settings.summary_uri` meta-data and
-  `AudioSummaryProvider.SUMMARY_URI` must name the same URI.
+- The routing tile's `com.android.settings.summary_uri` meta-data and
+  `RoutingSummaryProvider.SUMMARY_URI` must name the same URI.
 - Keep `README.md` in sync with behavior, permission or packaging changes.
 
 ## Framework interaction (AOSP source)
@@ -55,7 +73,9 @@
   `AudioDeviceBroker`, `AudioDeviceInventory` (how preferences are kept).
 - `frameworks/base/packages/SettingsLib/Tile/`: the Settings tile protocol.
 - `frameworks/base/services/permission/java/com/android/server/permission/access/permission/AppIdPermissionPolicy.kt`:
-  which allowlist applies to an APK in an APEX.
+  which allowlist applies to an APK in an APEX, and why a vendor app gets no
+  privileged permission without `vendorPrivileged`
+  (`shouldGrantPrivilegedOrOemPermission()`).
 
 ## Workflow
 

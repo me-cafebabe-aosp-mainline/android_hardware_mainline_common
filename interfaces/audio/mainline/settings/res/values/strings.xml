@@ -4,22 +4,9 @@
     SPDX-License-Identifier: Apache-2.0
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name">Audio devices</string>
-    <string name="settings_title">Audio devices</string>
-
-    <!-- Output and input selection -->
-    <string name="output_title">Default output</string>
-    <string name="input_title">Default input</string>
-    <string name="automatic_title">Automatic</string>
-    <string name="automatic_output_summary">Android picks the output, e.g. headphones once they are plugged in</string>
-    <string name="automatic_input_summary">Android picks the input, e.g. a headset microphone once it is plugged in</string>
-    <string name="mixed_summary">Another app set a different device for some kinds of audio</string>
-    <string name="not_connected">Not connected</string>
-    <string name="no_inputs">No input devices</string>
-    <string name="routing_footer">The default device is used for all audio while it is connected; Android falls back to its own choice otherwise.</string>
-
-    <!-- Tile summary, e.g. "Speaker · Built-in microphone" -->
-    <string name="summary_format"><xliff:g id="output">%1$s</xliff:g> · <xliff:g id="input">%2$s</xliff:g></string>
+    <string name="app_name">Audio hardware</string>
+    <string name="settings_title">Audio hardware</string>
+    <string name="settings_summary">Sound cards, speakers, mixer</string>
 
     <!-- Hardware pages -->
     <string name="hardware_title">Hardware</string>
@@ -189,22 +176,4 @@
     <string name="output_footer">Changes apply right away. Delay the speakers closest to you by about 3 ms per metre they are closer than the farthest one.</string>
     <string name="output_auto_footer">Pick a speaker layout to set up each speaker.</string>
 
-    <!-- Device names for devices the HAL does not describe -->
-    <string name="device_speaker">Speaker</string>
-    <string name="device_earpiece">Earpiece</string>
-    <string name="device_headphones">Headphones</string>
-    <string name="device_headset">Headset</string>
-    <string name="device_line_out">Line out</string>
-    <string name="device_hdmi">HDMI</string>
-    <string name="device_hdmi_arc">HDMI ARC</string>
-    <string name="device_spdif">S/PDIF</string>
-    <string name="device_usb">USB audio</string>
-    <string name="device_bluetooth">Bluetooth</string>
-    <string name="device_mic">Built-in microphone</string>
-    <string name="device_headset_mic">Headset microphone</string>
-    <string name="device_line_in">Line in</string>
-    <!-- Fallback for unknown device types, e.g. "Audio device 42" -->
-    <string name="device_other">Audio device <xliff:g id="type">%1$d</xliff:g></string>
-    <!-- A device and its address, e.g. "PCH/HDMI2" -->
-    <string name="device_with_address"><xliff:g id="device">%1$s</xliff:g> (<xliff:g id="address">%2$s</xliff:g>)</string>
 </resources>

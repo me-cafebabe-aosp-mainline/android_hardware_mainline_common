@@ -1,0 +1,30 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// What the mainline audio settings apps share: the activity frame, the page
+// base class and the radio preference. Plain AndroidX: the APEX app can not
+// use SettingsLib.
+android_library {
+    name: "MainlineAudioSettingsCommon",
+
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+    manifest: "AndroidManifest.xml",
+
+    sdk_version: "system_current",
+
+    static_libs: [
+        "androidx.activity_activity-ktx",
+        "androidx.appcompat_appcompat",
+        "androidx.fragment_fragment-ktx",
+        "androidx.preference_preference",
+        "com.google.android.material_material",
+    ],
+
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.hardware.audio.mainline",
+    ],
+}

@@ -55,11 +55,7 @@ class OutputViewModel(application: Application) : AndroidViewModel(application) 
         val key = key ?: return
         // The latest change wins; a slider sends many.
         applyJob?.cancel()
-        applyJob =
-            viewModelScope.launch {
-                HalControl.call { it.setOutputSettings(key, settings) }
-                AudioSummaryProvider.notifyChanged(getApplication())
-            }
+        applyJob = viewModelScope.launch { HalControl.call { it.setOutputSettings(key, settings) } }
     }
 
     fun reset() {

@@ -369,9 +369,11 @@ stream owns which exclusive PCM device.
 ## Settings app and control interface
 
 The APEX carries a settings app, `MainlineAudioSettings`, shown as
-**Settings › Sound › Audio › Audio devices**; see
-[`settings/README.md`](settings/README.md). It needs the device's SELinux
-policy to give it a domain (vendor `seapp_contexts`).
+**Settings › Sound › Audio › Audio hardware**, and the product should also
+install `MainlineAudioRouting` (**Default audio devices**), which needs a
+permission an app in a vendor APEX can never hold; see
+[`settings/README.md`](settings/README.md). The APEX app needs the device's
+SELinux policy to give it a domain (vendor `seapp_contexts`).
 
 `vendor.mainline.audio.IControl/default` (`aidl/`) serves the settings app;
 the framework does not use it. Besides reading the HAL's state it adjusts

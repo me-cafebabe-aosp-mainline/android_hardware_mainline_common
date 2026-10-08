@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package vendor.mainline.audio.settings
+package vendor.mainline.audio.routing
 
 import android.content.Context
 import android.media.AudioDeviceInfo

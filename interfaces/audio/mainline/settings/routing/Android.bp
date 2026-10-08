@@ -1,0 +1,40 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// Default output and input picker of the mainline audio settings, see
+// ../README.md. It is a separate product app because it needs
+// MODIFY_AUDIO_ROUTING, a privileged permission that Android never grants to
+// a vendor app such as the one in the HAL's APEX (it lacks vendorPrivileged).
+android_app {
+    name: "MainlineAudioRouting",
+
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+
+    // AudioManager routing preferences are system APIs; the product
+    // partition interface allows nothing beyond them.
+    sdk_version: "system_current",
+    product_specific: true,
+    privileged: true,
+
+    static_libs: [
+        "MainlineAudioSettingsCommon",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.lifecycle_lifecycle-viewmodel-ktx",
+        "kotlinx_coroutines_android",
+    ],
+    required: ["privapp-permissions-vendor.mainline.audio.routing.xml"],
+
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
+}
+
+prebuilt_etc {
+    name: "privapp-permissions-vendor.mainline.audio.routing.xml",
+    src: "privapp-permissions-vendor.mainline.audio.routing.xml",
+    sub_dir: "permissions",
+    product_specific: true,
+}

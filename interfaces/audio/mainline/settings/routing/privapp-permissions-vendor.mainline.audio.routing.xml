@@ -4,7 +4,7 @@
     SPDX-License-Identifier: Apache-2.0
 -->
 <permissions>
-    <privapp-permissions package="vendor.mainline.audio.settings">
+    <privapp-permissions package="vendor.mainline.audio.routing">
         <!-- Preferred output and input devices. -->
         <permission name="android.permission.MODIFY_AUDIO_ROUTING" />
     </privapp-permissions>

@@ -290,8 +290,6 @@ apex {
         "alsa_lib_conf_ctl",
         "alsa_lib_conf_pcm",
         "alsa-ucm-conf-base",
-        // The settings app's allowlist, which has to be on /vendor.
-        "privapp-permissions-vendor.mainline.audio.settings.xml",
     ] + select(soong_config_variable("mainline_audio", "disable_bluetooth"), {
         true: [],
         default: [

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package vendor.mainline.audio.settings
+package vendor.mainline.audio.routing
 
 import android.content.ContentProvider
 import android.content.ContentValues
@@ -11,17 +11,15 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
-import kotlinx.coroutines.runBlocking
 
-/** Supplies the default output and input as the summary of the Settings › Sound tile. */
-class AudioSummaryProvider : ContentProvider() {
+/** Supplies the default output and input as the summary of the Settings tile. */
+class RoutingSummaryProvider : ContentProvider() {
     override fun onCreate() = true
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         if (method != METHOD_GET_DYNAMIC_SUMMARY) return null
         val context = context ?: return null
-        // A Binder thread of this process: blocking is fine, the HAL lookup has a timeout.
-        val labels = DeviceLabels(context, runBlocking { HalControl.status() })
+        val labels = DeviceLabels(context)
         val routing = AudioRouting(context)
         val output = describe(context, routing.outputChoice(), labels)
         val summary =
@@ -71,9 +69,7 @@ class AudioSummaryProvider : ContentProvider() {
 
         /** Must match the `com.android.settings.summary_uri` meta-data in the manifest. */
         private val SUMMARY_URI =
-            Uri.parse(
-                "content://vendor.mainline.audio.settings.summary/$METHOD_GET_DYNAMIC_SUMMARY"
-            )
+            Uri.parse("content://vendor.mainline.audio.routing.summary/$METHOD_GET_DYNAMIC_SUMMARY")
 
         /** Asks a visible Settings › Sound page to fetch the summary again. */
         fun notifyChanged(context: Context) {

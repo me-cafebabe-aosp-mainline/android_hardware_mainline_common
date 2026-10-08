@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.Preference
 import kotlinx.coroutines.launch
+import vendor.mainline.audio.settings.common.SettingsFragment
 
 /** The outputs of the HAL, each leading to its speaker setup. */
 class SpeakersFragment : SettingsFragment() {

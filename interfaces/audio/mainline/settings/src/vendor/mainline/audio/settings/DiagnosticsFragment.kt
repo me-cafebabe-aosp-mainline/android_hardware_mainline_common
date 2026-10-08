@@ -19,6 +19,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import kotlinx.coroutines.launch
 import vendor.mainline.audio.EndpointStatus
+import vendor.mainline.audio.settings.common.SettingsFragment
 
 /** Sound cards and endpoints as the HAL sees them, and the report for bug reports. */
 class DiagnosticsFragment : SettingsFragment() {

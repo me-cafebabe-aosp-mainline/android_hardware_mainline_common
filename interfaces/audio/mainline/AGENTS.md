@@ -51,7 +51,9 @@ dsp/                       Output processing. No AIDL, no ALSA calls.
   OutputProcessor.*        One per open PCM: format <-> float, channel matrix, LR4
                            crossover, levels, delay lines, pink noise test tone.
   Biquad.h                 Butterworth sections, Linkwitz-Riley 4th order.
-settings/                  The settings app (Kotlin) in the APEX; own AGENTS.md.
+settings/                  The settings app (Kotlin) in the APEX, plus routing/ (the
+                           product app for default devices) and common/; own
+                           AGENTS.md.
 alsa/                      Thin C++ wrappers over alsa-lib. No Android types except
                            in AlsaFormat (AIDL <-> ALSA formats/channels/profiles).
   AlsaCard.*               Card / PCM enumeration through snd_ctl.
