@@ -21,6 +21,59 @@
     <!-- Tile summary, e.g. "Speaker · Built-in microphone" -->
     <string name="summary_format"><xliff:g id="output">%1$s</xliff:g> · <xliff:g id="input">%2$s</xliff:g></string>
 
+    <!-- Hardware pages -->
+    <string name="hardware_title">Hardware</string>
+    <string name="diagnostics_title">Sound cards</string>
+    <string name="diagnostics_summary">What the audio HAL found and uses, and a report for bug reports</string>
+    <string name="hal_unavailable">The audio HAL does not answer.</string>
+
+    <!-- Diagnostics -->
+    <string name="report_title">Audio HAL report</string>
+    <string name="report_copy">Copy report</string>
+    <string name="report_copy_summary">For bug reports: the HAL state and the kernel\'s sound cards</string>
+    <string name="report_share">Share report</string>
+    <!-- e.g. "Card 0: HDA Intel PCH" -->
+    <string name="card_title">Card <xliff:g id="index">%1$d</xliff:g>: <xliff:g id="name">%2$s</xliff:g></string>
+    <!-- e.g. "Driver HDA-Intel, id PCH" -->
+    <string name="card_driver">Driver <xliff:g id="driver">%1$s</xliff:g>, id <xliff:g id="id">%2$s</xliff:g></string>
+    <string name="card_mixer">Mixer <xliff:g id="mixer">%1$s</xliff:g></string>
+    <string name="card_no_ucm">No UCM profile: devices guessed from PCM names</string>
+    <!-- e.g. "UCM verb HiFi, enabled: Speaker, Mic" -->
+    <string name="card_ucm">UCM verb <xliff:g id="verb">%1$s</xliff:g>, enabled: <xliff:g id="devices">%2$s</xliff:g></string>
+    <string name="card_primary">Provides the built-in speaker and microphone</string>
+    <string name="no_card_title">No sound card</string>
+    <!-- e.g. "Output: Speaker" -->
+    <string name="endpoint_output">Output: <xliff:g id="name">%1$s</xliff:g></string>
+    <string name="endpoint_input">Input: <xliff:g id="name">%1$s</xliff:g></string>
+    <string name="endpoint_default">default device</string>
+    <string name="endpoint_attached">always available</string>
+    <string name="endpoint_external">available when plugged in</string>
+    <!-- e.g. "Speaker, default device" -->
+    <string name="endpoint_role"><xliff:g id="role">%1$s</xliff:g>, <xliff:g id="kind">%2$s</xliff:g></string>
+    <string name="endpoint_null_output">No hardware: audio is discarded</string>
+    <string name="endpoint_null_input">No hardware: silence is recorded</string>
+    <string name="endpoint_path">PCM <xliff:g id="pcm">%1$s</xliff:g></string>
+    <string name="endpoint_path_ucm">PCM <xliff:g id="pcm">%1$s</xliff:g>, UCM device <xliff:g id="device">%2$s</xliff:g></string>
+    <!-- e.g. "S16_LE, S32_LE · 44.1, 48 kHz · 2 channels" -->
+    <string name="endpoint_caps"><xliff:g id="formats">%1$s</xliff:g> · <xliff:g id="rates">%2$s</xliff:g> · <xliff:g id="channels">%3$s</xliff:g> channels</string>
+    <string name="jack_plugged">Plugged in</string>
+    <string name="jack_unplugged">Unplugged</string>
+    <plurals name="endpoint_streams">
+        <item quantity="one">In use by <xliff:g id="count">%d</xliff:g> stream</item>
+        <item quantity="other">In use by <xliff:g id="count">%d</xliff:g> streams</item>
+    </plurals>
+    <string name="endpoint_owner">Device held by <xliff:g id="stream">%1$s</xliff:g></string>
+    <string name="hdmi_no_passthrough">No passthrough: the driver lacks the IEC958 controls</string>
+    <string name="hdmi_sink">Sink <xliff:g id="name">%1$s</xliff:g></string>
+    <!-- e.g. "ac3 (6 ch, 32, 44.1, 48 kHz)" -->
+    <string name="hdmi_format"><xliff:g id="format">%1$s</xliff:g> (<xliff:g id="channels">%2$d</xliff:g> ch, <xliff:g id="rates">%3$s</xliff:g>)</string>
+    <!-- e.g. "Passthrough: ac3 (...), from ELD" -->
+    <string name="hdmi_passthrough">Passthrough: <xliff:g id="formats">%1$s</xliff:g>, from <xliff:g id="source">%2$s</xliff:g></string>
+    <string name="hdmi_hbr">High bit rate: <xliff:g id="hbr">%1$s</xliff:g></string>
+    <!-- e.g. "44.1, 48 kHz" -->
+    <string name="rates_khz"><xliff:g id="rates">%1$s</xliff:g> kHz</string>
+    <string name="none">none</string>
+
     <!-- Device names for devices the HAL does not describe -->
     <string name="device_speaker">Speaker</string>
     <string name="device_earpiece">Earpiece</string>

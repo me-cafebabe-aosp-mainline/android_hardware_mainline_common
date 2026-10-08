@@ -62,8 +62,27 @@ class AudioSettingsFragment : SettingsFragment() {
                 }
             )
         }
+        if (state.halAvailable) screen.addHardware()
         screen.addFooter(KEY_FOOTER, R.string.routing_footer)
         preferenceScreen = screen
+    }
+
+    /** Pages that need the mainline audio HAL. */
+    private fun PreferenceScreen.addHardware() {
+        val category =
+            PreferenceCategory(context).apply {
+                key = KEY_HARDWARE
+                setTitle(R.string.hardware_title)
+            }
+        addPreference(category)
+        category.addPreference(
+            Preference(context).apply {
+                key = "$KEY_HARDWARE/diagnostics"
+                setTitle(R.string.diagnostics_title)
+                setSummary(R.string.diagnostics_summary)
+                fragment = DiagnosticsFragment::class.java.name
+            }
+        )
     }
 
     private fun PreferenceScreen.addSelection(
@@ -114,6 +133,7 @@ class AudioSettingsFragment : SettingsFragment() {
     private companion object {
         const val KEY_OUTPUT = "output"
         const val KEY_INPUT = "input"
+        const val KEY_HARDWARE = "hardware"
         const val KEY_FOOTER = "footer"
     }
 }

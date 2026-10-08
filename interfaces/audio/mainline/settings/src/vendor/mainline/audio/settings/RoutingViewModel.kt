@@ -25,7 +25,8 @@ import kotlinx.coroutines.withContext
 class RoutingViewModel(application: Application) : AndroidViewModel(application) {
     data class Selection(val options: List<DeviceOption>, val choice: AudioRouting.Choice)
 
-    data class State(val output: Selection, val input: Selection)
+    /** [halAvailable]: the device runs the mainline audio HAL, so its pages apply. */
+    data class State(val output: Selection, val input: Selection, val halAvailable: Boolean)
 
     private val routing = AudioRouting(application)
     private val audioManager = application.getSystemService(AudioManager::class.java)
@@ -82,7 +83,13 @@ class RoutingViewModel(application: Application) : AndroidViewModel(application)
                         labels,
                     ),
                 input =
-                    selection(routing.inputs(), routing.inputChoice(), routing.savedInput(), labels),
+                    selection(
+                        routing.inputs(),
+                        routing.inputChoice(),
+                        routing.savedInput(),
+                        labels,
+                    ),
+                halAvailable = HalControl.isDeclared,
             )
         }
     }

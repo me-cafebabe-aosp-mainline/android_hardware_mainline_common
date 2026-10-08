@@ -14,6 +14,13 @@ app of the mainline audio HAL. It ships inside the HAL's APEX and appears in
   returns to the device once it is back. A device that is not connected stays
   listed while it is chosen.
 
+- **Hardware › Sound cards:** what the HAL found and uses: per card the
+  driver, the UCM verb and its enabled devices; per endpoint its role, PCM
+  and UCM device, capabilities, jack state, the streams using it and, for
+  HDMI heads, the sink's passthrough formats. **Copy report** / **Share
+  report** hand out the HAL's dumpsys text plus `/proc/asound` for bug
+  reports. Shown only on devices that declare `IControl`.
+
 Devices of the mainline HAL are named after their device port (e.g.
 "PCH: HDMI 1"), from `vendor.mainline.audio.IControl`; others by their
 product name or type.

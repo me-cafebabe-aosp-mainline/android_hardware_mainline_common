@@ -13,6 +13,8 @@
 - `AudioRouting.kt`: the only code that changes AudioService routing
   preferences, and their storage.
 - `AudioDevices.kt`: device identity (`DeviceId`) and names (`DeviceLabels`).
+- `DiagnosticsFragment.kt`, `DiagnosticsViewModel.kt`, `StatusText.kt`:
+  Hardware › Sound cards, the report.
 - `HalControl.kt`: the only code that talks to `IControl`.
 - `AudioSummaryProvider.kt`: the Settings tile summary.
 - `BootReceiver.kt`: restores the routing preferences at boot.
