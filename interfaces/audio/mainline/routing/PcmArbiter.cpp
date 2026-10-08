@@ -82,6 +82,13 @@ std::vector<alsa::PcmIdentity> PcmArbiter::PendingYields(const Client& client) c
     return result;
 }
 
+std::string PcmArbiter::OwnerOf(const alsa::PcmIdentity& pcm) const {
+    std::lock_guard guard(lock_);
+    const auto it = entries_.find(pcm);
+    if (it == entries_.end() || it->second.owner == nullptr) return {};
+    return it->second.owner->name();
+}
+
 std::string PcmArbiter::Dump() const {
     std::lock_guard guard(lock_);
     std::ostringstream os;

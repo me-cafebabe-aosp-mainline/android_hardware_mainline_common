@@ -22,13 +22,19 @@ the original requirements. This file is about the code.
 
 ```
 main.cpp                   Process entry: registers IConfig/default, IModule/default,
-                           IModule/r_submix and (build option) IModule/bluetooth.
+                           IModule/r_submix, (build option) IModule/bluetooth and
+                           vendor.mainline.audio.IControl/default.
 MainlineConfig.*           IConfig: engine config XML from the APEX (or /vendor/etc),
                            default surround config.
 ModuleMainline.*           IModule: subclass of the example HAL's Module. Creates
                            streams, fills profiles of connected external devices,
                            owns the DeviceInventory and RoutingController.
 Properties.*               vendor.audio.mainline.* -> struct Properties.
+aidl/                      vendor.mainline.audio: the control interface (IControl)
+                           between the HAL and its settings app, and its framework
+                           compatibility matrix entry. Not frozen yet.
+control/
+  ControlService.*         IControl: reads the module's state for the settings app.
 alsa/                      Thin C++ wrappers over alsa-lib. No Android types except
                            in AlsaFormat (AIDL <-> ALSA formats/channels/profiles).
   AlsaCard.*               Card / PCM enumeration through snd_ctl.
@@ -159,9 +165,10 @@ We link `libaudioserviceexampleimpl` statically and derive from:
 
 ## Threading
 
-* Binder threads: everything in `ModuleMainline`, `StreamMainline::
-  setConnectedDevices` / `setGain`, `RoutingController`, `UcmManager`.
-  `PcmArbiter` is called from the workers (and `dump()`) only.
+* Binder threads: everything in `ModuleMainline`, `ControlService`,
+  `StreamMainline::setConnectedDevices` / `setGain`, `RoutingController`,
+  `UcmManager`. `PcmArbiter` is called from the workers, and read by
+  `dump()` and `ControlService`.
 * One worker thread per stream (created by `StreamCommonImpl`): all
   `DriverInterface` methods and every `alsa::Pcm` call. PCM handles are never
   touched from Binder threads.
@@ -297,6 +304,22 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   Only attached ports have initial configs: an initial config for an external
   template makes `Hal2AidlMapper` reuse its port ID after connection, which
   `Module::setAudioPortConfigImpl` rejects as an unconnected template.
+
+## Control interface
+
+* `vendor.mainline.audio.IControl/default` is for the settings app in the
+  APEX only; the framework never sees it. It must never change what
+  `IModule` reports behind the framework's back: anything that changes ports
+  or profiles takes effect through a HAL restart.
+* `ControlService` gets the module's state through the read accessors of
+  `ModuleMainline`; keep the module free of control specific logic.
+* `Endpoint::Key()` names a path for state the control interface keeps
+  across restarts. Never key such state by card index or port id, both
+  change between boots.
+* The interface is unfrozen, so methods and fields can still change freely.
+  Once it is frozen, every change needs a new version (`aidl_api/`), and the
+  VINTF fragment, the compatibility matrix and the `-V<n>-` library names
+  have to follow.
 
 ## Framework Interaction (AOSP source)
 

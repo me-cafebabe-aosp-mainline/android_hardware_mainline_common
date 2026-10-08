@@ -35,6 +35,23 @@ class ModuleMainline final : public Module {
     ModuleMainline(std::unique_ptr<Configuration>&& config, const Properties& properties,
                    std::shared_ptr<routing::DeviceInventory> inventory);
 
+    // Read access for the control service (control/ControlService.h). Safe
+    // from any thread: the inventory is immutable and the others are thread
+    // safe.
+    const Properties& properties() const { return properties_; }
+    const routing::DeviceInventory& inventory() const { return *inventory_; }
+    const routing::RoutingController& routing_controller() const { return *routing_; }
+    const routing::PcmArbiter& pcm_arbiter() const { return *pcm_arbiter_; }
+    // The HdmiControl of an HDMI head, nullptr without passthrough controls.
+    std::unique_ptr<passthrough::HdmiControl> MakeHdmiControl(const routing::Endpoint& head) const {
+        return hdmi_control_factory_(head);
+    }
+    // What the sink behind `control` decodes: hdmi.passthrough_formats, else
+    // the ELD.
+    passthrough::SinkCapabilities ResolveSinkCapabilities(passthrough::HdmiControl& control) const;
+    // The HAL specific part of dump().
+    std::string DumpState() const;
+
   private:
     // IModule
     ndk::ScopedAStatus getTelephony(std::shared_ptr<ITelephony>* _aidl_return) override;
@@ -89,7 +106,6 @@ class ModuleMainline final : public Module {
     // `head` to the connected HDMI device port.
     void AddPassthroughProfiles(const routing::Endpoint& head,
                                 ::aidl::android::media::audio::common::AudioPort* audio_port);
-    passthrough::SinkCapabilities ResolveSinkCapabilities(passthrough::HdmiControl& control);
     // Fills the passthrough mix port from the connected HDMI device port, or
     // empties it again (dynamic) on disconnection.
     void UpdatePassthroughMixPort(const ::aidl::android::media::audio::common::AudioPort& hdmi_port,

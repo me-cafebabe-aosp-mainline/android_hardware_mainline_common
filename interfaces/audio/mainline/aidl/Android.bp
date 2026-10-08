@@ -1,0 +1,47 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// Control interface between the mainline audio HAL and the settings app
+// shipped in the same APEX. See IControl.aidl.
+//
+// Not frozen yet: freeze it (m vendor.mainline.audio-freeze-api) before the
+// first release that other partitions depend on, and bump the version for
+// every change afterwards.
+aidl_interface {
+    name: "vendor.mainline.audio",
+    owner: "mainline",
+    vendor_available: true,
+    srcs: ["vendor/mainline/audio/*.aidl"],
+    stability: "vintf",
+    frozen: false,
+    backend: {
+        cpp: {
+            enabled: false,
+        },
+        java: {
+            sdk_version: "module_current",
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.hardware.audio.mainline",
+            ],
+        },
+        ndk: {
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.hardware.audio.mainline",
+            ],
+        },
+    },
+}
+
+// The framework compatibility matrix entry for IControl. The interface is
+// optional: the framework never uses it, the entry only keeps VINTF checks
+// from flagging the HAL as unknown.
+vintf_compatibility_matrix {
+    name: "framework_compatibility_matrix.mainline.audio.xml",
+    stem: "compatibility_matrix.mainline.audio.xml",
+    srcs: ["compatibility_matrix.mainline.audio.xml"],
+    product_specific: true,
+}

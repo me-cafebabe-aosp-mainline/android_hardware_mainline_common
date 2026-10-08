@@ -9,9 +9,7 @@
 
 namespace aidl::android::hardware::audio::core::mainline::passthrough {
 
-namespace {
-
-const char* SourceName(SinkCapabilities::Source source) {
+const char* ToString(SinkCapabilities::Source source) {
     switch (source) {
         case SinkCapabilities::Source::kNone:
             return "none";
@@ -23,11 +21,9 @@ const char* SourceName(SinkCapabilities::Source source) {
     return "?";
 }
 
-}  // namespace
-
 std::string SinkCapabilities::ToString() const {
     std::ostringstream os;
-    os << "source=" << SourceName(source);
+    os << "source=" << passthrough::ToString(source);
     if (!monitor_name.empty()) os << " monitor=\"" << monitor_name << "\"";
     os << " pcm_channels=" << max_pcm_channels << " formats={";
     bool first_format = true;

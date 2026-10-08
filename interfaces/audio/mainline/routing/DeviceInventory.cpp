@@ -157,6 +157,16 @@ void FilterEndpointCapabilities(const alsa::CardInfo& card, Endpoint* endpoint) 
 
 // --- Endpoint ----------------------------------------------------------------
 
+std::string Endpoint::Key() const {
+    const char* direction = is_input ? "in" : "out";
+    if (IsNull()) return std::string("null/") + direction;
+    std::string path = ucm_device;
+    if (path.empty()) {
+        path = pcm_identity.IsKnown() ? std::to_string(pcm_identity.device) : pcm_name;
+    }
+    return card_id + "/" + path + "/" + direction;
+}
+
 std::string Endpoint::ToString() const {
     std::ostringstream os;
     os << "\"" << name << "\" role=" << routing::ToString(role) << (is_input ? " in" : " out")

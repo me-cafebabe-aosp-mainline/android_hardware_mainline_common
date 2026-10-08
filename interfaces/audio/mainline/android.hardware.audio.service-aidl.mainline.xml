@@ -14,4 +14,9 @@
     <version>4</version>
     <fqname>IConfig/default</fqname>
   </hal>
+  <hal format="aidl">
+    <name>vendor.mainline.audio</name>
+    <version>1</version>
+    <fqname>IControl/default</fqname>
+  </hal>
 </manifest>

@@ -51,6 +51,11 @@ struct Endpoint {
 
     bool IsAttached() const { return !IsExternalRole(role); }
     bool IsNull() const { return backend == Backend::kNull; }
+    // Names the ALSA path across restarts and card renumbering, for
+    // per-path state the control interface keeps:
+    // "<card id>/<UCM device or PCM device number>/<in|out>", "null/<in|out>"
+    // for the null backend. Endpoints on the same path share the key.
+    std::string Key() const;
     std::string ToString() const;
 };
 

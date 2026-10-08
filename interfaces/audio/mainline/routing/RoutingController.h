@@ -26,6 +26,8 @@ class RoutingController {
 
     void Acquire(const Endpoint& endpoint);
     void Release(const Endpoint& endpoint);
+    // Streams holding the endpoint's UCM device, 0 for endpoints without one.
+    int UseCount(const Endpoint& endpoint) const;
 
     std::string Dump() const;
 

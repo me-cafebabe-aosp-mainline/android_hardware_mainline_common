@@ -42,4 +42,7 @@ struct SinkCapabilities {
     static SinkCapabilities FromFormatList(const std::vector<EncodedFormat>& formats);
 };
 
+// "none", "ELD" or "property".
+const char* ToString(SinkCapabilities::Source source);
+
 }  // namespace aidl::android::hardware::audio::core::mainline::passthrough

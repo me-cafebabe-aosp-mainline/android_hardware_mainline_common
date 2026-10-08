@@ -86,6 +86,8 @@ class PcmArbiter {
     void ReleaseAll(const Client& client);
     // Devices the client owns and another client is waiting for.
     std::vector<alsa::PcmIdentity> PendingYields(const Client& client) const;
+    // Name of the client owning `pcm`, empty when nobody does.
+    std::string OwnerOf(const alsa::PcmIdentity& pcm) const;
 
     std::string Dump() const;
 

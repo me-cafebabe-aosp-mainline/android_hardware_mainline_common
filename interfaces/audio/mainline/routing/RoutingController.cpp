@@ -65,6 +65,13 @@ void RoutingController::Release(const Endpoint& endpoint) {
     }
 }
 
+int RoutingController::UseCount(const Endpoint& endpoint) const {
+    if (endpoint.ucm_device.empty()) return 0;
+    std::lock_guard guard(lock_);
+    const auto it = refcounts_.find(Key(endpoint));
+    return it != refcounts_.end() ? it->second : 0;
+}
+
 std::string RoutingController::Dump() const {
     std::lock_guard guard(lock_);
     std::ostringstream os;

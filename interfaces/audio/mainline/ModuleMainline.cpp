@@ -358,7 +358,7 @@ ndk::ScopedAStatus ModuleMainline::populateConnectedDevicePort(AudioPort* audio_
 }
 
 passthrough::SinkCapabilities ModuleMainline::ResolveSinkCapabilities(
-        passthrough::HdmiControl& control) {
+        passthrough::HdmiControl& control) const {
     if (!forced_passthrough_formats_.empty()) {
         return passthrough::SinkCapabilities::FromFormatList(forced_passthrough_formats_);
     }
@@ -439,13 +439,17 @@ void ModuleMainline::onExternalDeviceConnectionChanged(const AudioPort& audio_po
 
 // --- Debugging ---------------------------------------------------------------
 
-binder_status_t ModuleMainline::dump(int fd, const char** args, uint32_t num_args) {
+std::string ModuleMainline::DumpState() const {
     std::string text = "Mainline audio HAL\n";
     text += "Properties: " + properties_.ToString() + "\n";
     text += inventory_->Dump();
     text += routing_->Dump();
     text += pcm_arbiter_->Dump();
-    ::android::base::WriteStringToFd(text, fd);
+    return text;
+}
+
+binder_status_t ModuleMainline::dump(int fd, const char** args, uint32_t num_args) {
+    ::android::base::WriteStringToFd(DumpState(), fd);
     return Module::dump(fd, args, num_args);
 }
 

@@ -20,12 +20,14 @@
 #include "ModuleMainline.h"
 #include "Properties.h"
 #include "alsa/AlsaError.h"
+#include "control/ControlService.h"
 
 using aidl::android::hardware::audio::core::ChildInterface;
 using aidl::android::hardware::audio::core::Module;
 using aidl::android::hardware::audio::core::mainline::MainlineConfig;
 using aidl::android::hardware::audio::core::mainline::ModuleMainline;
 using aidl::android::hardware::audio::core::mainline::Properties;
+using aidl::android::hardware::audio::core::mainline::control::ControlService;
 
 namespace {
 
@@ -98,7 +100,20 @@ int main() {
     // IModule/default: the alsa-lib backed module. Discovery happens here, so
     // the sound cards must already exist when the HAL starts.
     std::vector<ChildInterface<Module>> modules;
-    RegisterModule(ModuleMainline::Create(properties), "default", &modules);
+    const std::shared_ptr<ModuleMainline> module = ModuleMainline::Create(properties);
+    RegisterModule(module, "default", &modules);
+
+    // vendor.mainline.audio.IControl/default: the settings app's view of the
+    // module. The HAL works without it, so a failure is only logged.
+    auto control = ndk::SharedRefBase::make<ControlService>(module);
+    const std::string control_fqn = std::string(ControlService::descriptor) + "/default";
+    if (const binder_status_t status =
+                AServiceManager_addService(control->asBinder().get(), control_fqn.c_str());
+        status != STATUS_OK) {
+        LOG(ERROR) << "failed to register " << control_fqn << ": " << status;
+    } else {
+        LOG(INFO) << "registered " << control_fqn;
+    }
 
     // Software modules reused from the example HAL.
     RegisterExampleModule(Module::Type::R_SUBMIX, "r_submix", &modules);

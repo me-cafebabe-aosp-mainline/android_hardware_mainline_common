@@ -57,6 +57,7 @@ cc_binary {
         "MainlineConfig.cpp",
         "ModuleMainline.cpp",
         "Properties.cpp",
+        "control/ControlService.cpp",
         "alsa/AlsaCard.cpp",
         "alsa/AlsaError.cpp",
         "alsa/AlsaFormat.cpp",
@@ -97,6 +98,7 @@ cc_binary {
     ],
     shared_libs: [
         "android.hardware.bluetooth.audio-impl",
+        "vendor.mainline.audio-V1-ndk",
         "libapexsupport",
         "libasound",
         "libaudio_aidl_conversion_common_ndk",

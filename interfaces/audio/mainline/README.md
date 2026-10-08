@@ -23,7 +23,7 @@ below.
 | APEX manifest name     | `com.android.hardware.audio` (multi-install with the example) |
 | Core HAL binary        | `/apex/com.android.hardware.audio/bin/hw/android.hardware.audio.service-aidl.mainline` |
 | Init services          | `vendor.audio-hal-aidl-mainline`, `vendor.audio-effect-hal-aidl-mainline` (only with `internal_effects`) |
-| AIDL instances         | `IConfig/default`, `IModule/default`, `IModule/r_submix`, `IModule/bluetooth` (optional), `IFactory/default` (only with `internal_effects`) |
+| AIDL instances         | `IConfig/default`, `IModule/default`, `IModule/r_submix`, `IModule/bluetooth` (optional), `IFactory/default` (only with `internal_effects`), `vendor.mainline.audio.IControl/default` |
 | Log tags               | `MainlineAudio_*`                                           |
 
 ## Product integration
@@ -364,6 +364,20 @@ setprop vendor.audio.mainline.log.verbose true   # then restart the HAL
 The `dumpsys` output starts with the effective properties, the cards, every
 endpoint with its capabilities, the UCM devices currently enabled and which
 stream owns which exclusive PCM device.
+
+## Control interface
+
+`vendor.mainline.audio.IControl/default` (`aidl/`) serves the settings app
+that ships in the APEX; the framework does not use it. It reports the cards,
+their UCM verb and enabled devices, and every endpoint with its path,
+capabilities, jack state, stream usage and, for HDMI heads, the sink's
+passthrough formats, plus a plain text report (`dumpsys` output and
+`/proc/asound`).
+
+The interface is not frozen yet. The product has to install its framework
+compatibility matrix entry, `framework_compatibility_matrix.mainline.audio.xml`
+(on `/product`), so that VINTF checks know the HAL; the device's SELinux
+policy decides who may use the service.
 
 ## Known limitations
 
