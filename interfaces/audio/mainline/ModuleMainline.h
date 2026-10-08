@@ -14,6 +14,7 @@
 #include <core-impl/Module.h>
 
 #include "Properties.h"
+#include "dsp/OutputConfigs.h"
 #include "passthrough/HdmiControl.h"
 #include "passthrough/PassthroughSink.h"
 #include "passthrough/SinkCapabilities.h"
@@ -52,6 +53,8 @@ class ModuleMainline final : public Module {
     passthrough::SinkCapabilities ResolveSinkCapabilities(passthrough::HdmiControl& control) const;
     // The HAL specific part of dump().
     std::string DumpState() const;
+    // The per endpoint output processing configs, which the streams follow.
+    const std::shared_ptr<dsp::OutputConfigs>& output_configs() const { return output_configs_; }
     // See RoutingController::SetDeviceEnabledListener().
     void SetDeviceEnabledListener(std::function<void(int card)> listener) {
         routing_->SetDeviceEnabledListener(std::move(listener));
@@ -124,6 +127,7 @@ class ModuleMainline final : public Module {
     const std::shared_ptr<routing::RoutingController> routing_;
     const std::shared_ptr<routing::PcmArbiter> pcm_arbiter_;
     const std::shared_ptr<std::atomic<bool>> mic_muted_;
+    const std::shared_ptr<dsp::OutputConfigs> output_configs_;
     const int32_t fast_output_port_id_;
     // HDMI heads that failed high bit rate, shared with the streams.
     const std::shared_ptr<passthrough::HbrFailures> hbr_failures_;

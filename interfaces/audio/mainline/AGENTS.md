@@ -40,7 +40,17 @@ control/
                            start and after every UCM device enable.
   SettingsStore.*          Properties overrides set through IControl: confirmed
                            set, trial with timeout and start limit, restart.
+  OutputSettingsStore.*    Output processing set through IControl: stored, kept in
+                           step with the module's dsp::OutputConfigs.
   StateStore.*             Key / value files in /data/vendor/mainline_audio.
+dsp/                       Output processing. No AIDL, no ALSA calls.
+  OutputConfig.*           Per endpoint config (layout, fill, bass management, swap,
+                           mono, levels, delays) and its text form.
+  OutputConfigs.*          Thread safe configs by Endpoint::Key() + the test tone;
+                           streams poll its version.
+  OutputProcessor.*        One per open PCM: format <-> float, channel matrix, LR4
+                           crossover, levels, delay lines, pink noise test tone.
+  Biquad.h                 Butterworth sections, Linkwitz-Riley 4th order.
 settings/                  The settings app (Kotlin) in the APEX; own AGENTS.md.
 alsa/                      Thin C++ wrappers over alsa-lib. No Android types except
                            in AlsaFormat (AIDL <-> ALSA formats/channels/profiles).
@@ -335,6 +345,16 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   that can make a device silent. `SettingsStore` must be created before
   `Properties::Load()`, and nothing may run before it that a broken setting
   could crash.
+* Output processing runs on the stream's worker thread, between the
+  framework's buffer and the PCM write, for PCM output streams only (never
+  passthrough). An endpoint whose config `IsIdentity()` gets no processor at
+  all, which keeps the unprocessed path exactly as it was. A processor reads
+  the stream's channel order and writes ALSA's, so the in-place
+  `ReorderChannelsAndroidToAlsa()` only happens after every processor ran.
+  Configs change under running streams: the worker compares
+  `OutputConfigs::version()` on every start / transfer and reopens its PCMs
+  when the channel count changes. The processor must not allocate once it
+  has seen the largest buffer.
 * `MixerSettings` re-applies stored values from
   `RoutingController::SetDeviceEnabledListener()`, i.e. on a Binder thread
   with the routing lock held: it must not call back into routing or streams.

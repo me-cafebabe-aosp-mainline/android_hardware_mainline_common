@@ -393,6 +393,29 @@ restarts with the previous ones when that does not happen within 30 seconds,
 or when it failed to come up with them twice. A device that fails even with
 confirmed settings starts without them while `settings.ignore` is set.
 
+### Output processing
+
+Each output can process what it plays, set per output through `IControl`
+and applied right away, also to playing streams:
+
+* **Speaker layout** (stereo, quad, 5.1, 7.1, or *auto*: the stream's own
+  channels). The PCM device is opened with the layout's channel count, and
+  streams are mixed to it: missing speakers are downmixed (ITU style
+  coefficients), and with *speaker fill* a stereo stream also drives the
+  rears, centre and subwoofer.
+* **Bass management:** with a subwoofer, *small speakers* moves their bass
+  below the crossover (40 to 250 Hz, 4th order Linkwitz-Riley) to the LFE
+  channel. Without a subwoofer, the stream's LFE goes to the fronts.
+* **Swap left / right, mono**, and per speaker **level** (-30 to +10 dB) and
+  **delay** (0 to 20 ms, room correction).
+* **Test tone:** pink noise on one speaker, while a stream plays to the
+  output.
+
+Processing works in float on the PCM formats the HAL plays and adds no
+latency beyond the configured delays. It never touches passthrough. An output
+left at the defaults is not processed at all. The settings are stored by
+path (`EndpointStatus.key`), so they follow the card when its index changes.
+
 The device's SELinux policy has to label `/data/vendor/mainline_audio`
 for the HAL to write it; without it nothing is kept across restarts.
 

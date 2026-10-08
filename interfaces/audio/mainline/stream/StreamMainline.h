@@ -15,6 +15,8 @@
 #include <core-impl/Stream.h>
 
 #include "alsa/AlsaPcm.h"
+#include "dsp/OutputConfigs.h"
+#include "dsp/OutputProcessor.h"
 #include "passthrough/PassthroughSink.h"
 #include "routing/DeviceInventory.h"
 #include "routing/Endpoint.h"
@@ -34,6 +36,8 @@ struct StreamDeps {
     std::shared_ptr<std::atomic<bool>> mic_muted;
     // Access to the channel status / ELD of HDMI heads, for passthrough.
     passthrough::HdmiControlFactory make_hdmi_control;
+    // Per endpoint output processing (speaker layout, levels, ...).
+    std::shared_ptr<dsp::OutputConfigs> output_configs;
 };
 
 // alsa-lib backed implementation of DriverInterface for both directions.
@@ -61,6 +65,12 @@ struct StreamDeps {
 // A stream with an encoded format (or IEC 61937) is a passthrough stream: it
 // only plays to the HDMI template and hands its data to a PassthroughSink
 // instead of a PCM device.
+//
+// A PCM output stream runs what it writes to an endpoint through a
+// dsp::OutputProcessor when the endpoint's OutputConfig asks for processing
+// (deps.output_configs); the PCM device is then opened with the processor's
+// channel count. A config change reaches a running stream on its next
+// transfer, reopening the devices when the channel count changes.
 class StreamMainline : public StreamCommonImpl {
   public:
     StreamMainline(StreamContext* context, const Metadata& metadata, StreamDeps deps);
@@ -114,6 +124,12 @@ class StreamMainline : public StreamCommonImpl {
     ::android::status_t TransferOutput(void* buffer, size_t frame_count, int32_t* latency_ms);
     ::android::status_t TransferInput(void* buffer, size_t frame_count, int32_t* latency_ms);
     alsa::PcmConfig MakePcmConfig() const;
+    // The processor for the endpoint `key`, nullptr when its output plays the
+    // stream as it is (or the stream is not a PCM output).
+    std::unique_ptr<dsp::OutputProcessor> MakeProcessor(const std::string& key) const;
+    // Worker thread: picks up changed output configs; closes the devices
+    // (for EnsureDevicesReady() to reopen) when a channel count changes.
+    void ApplyOutputConfigChanges();
     const char* Tag() const { return is_input_ ? "[in] " : "[out] "; }
 
     const StreamDeps deps_;
@@ -122,6 +138,8 @@ class StreamMainline : public StreamCommonImpl {
     const size_t buffer_size_frames_;
     const unsigned int channel_count_;
     const std::optional<snd_pcm_format_t> alsa_format_;
+    // The stream's channels, in its interleaved order, for the processors.
+    const std::vector<dsp::Role> channel_roles_;
     // The mix port carries the FAST flag: the framework runs a FastMixer that
     // expects every write to block for about one burst.
     const bool is_fast_;
@@ -142,6 +160,8 @@ class StreamMainline : public StreamCommonImpl {
     struct OpenPcm {
         alsa::PcmIdentity identity;
         std::unique_ptr<alsa::Pcm> pcm;
+        std::string key;  // Endpoint::Key() of the endpoint opened.
+        std::unique_ptr<dsp::OutputProcessor> processor;
     };
     std::vector<OpenPcm> pcms_;
     // Endpoints whose device is owned by a direct stream (mixed streams only).
@@ -151,6 +171,8 @@ class StreamMainline : public StreamCommonImpl {
     bool pcms_opened_ = false;
     NullDevice null_device_;
     bool null_running_ = false;
+    // OutputConfigs::version() the open processors follow.
+    uint64_t output_configs_version_ = 0;
 };
 
 class StreamInMainline final : public StreamIn, public StreamMainline {

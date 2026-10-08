@@ -8,6 +8,9 @@
 #include "control/ControlService.h"
 
 #include <algorithm>
+#include <array>
+#include <chrono>
+#include <optional>
 #include <utility>
 
 #include <android-base/file.h>
@@ -28,6 +31,7 @@ using ::aidl::vendor::mainline::audio::CardStatus;
 using ::aidl::vendor::mainline::audio::EndpointStatus;
 using ::aidl::vendor::mainline::audio::HdmiSinkStatus;
 using ::aidl::vendor::mainline::audio::MixerControl;
+using ::aidl::vendor::mainline::audio::OutputSettings;
 using ::aidl::vendor::mainline::audio::Setting;
 using ::aidl::vendor::mainline::audio::SettingChange;
 using ::aidl::vendor::mainline::audio::SinkFormat;
@@ -76,6 +80,58 @@ bool IsAcceptable(const std::string& key, const std::string& value) {
     return true;
 }
 
+constexpr std::array<std::pair<int32_t, dsp::Layout>, 5> kLayouts = {{
+        {OutputSettings::LAYOUT_AUTO, dsp::Layout::kAuto},
+        {OutputSettings::LAYOUT_STEREO, dsp::Layout::kStereo},
+        {OutputSettings::LAYOUT_QUAD, dsp::Layout::kQuad},
+        {OutputSettings::LAYOUT_5_1, dsp::Layout::k5Point1},
+        {OutputSettings::LAYOUT_7_1, dsp::Layout::k7Point1},
+}};
+
+OutputSettings ToAidl(const dsp::OutputConfig& config) {
+    OutputSettings settings{.fill = config.fill,
+                            .swapLeftRight = config.swap_left_right,
+                            .mono = config.mono,
+                            .subwoofer = config.subwoofer,
+                            .smallSpeakers = config.small_speakers,
+                            .crossoverHz = config.crossover_hz};
+    for (const auto& [aidl, layout] : kLayouts) {
+        if (layout == config.layout) settings.layout = aidl;
+    }
+    const size_t channels = dsp::LayoutRoles(config.layout).size();
+    settings.levelsDb.assign(config.levels_db.begin(), config.levels_db.begin() + channels);
+    settings.delaysMs.assign(config.delays_ms.begin(), config.delays_ms.begin() + channels);
+    return settings;
+}
+
+std::optional<dsp::OutputConfig> FromAidl(const OutputSettings& settings) {
+    dsp::OutputConfig config;
+    const auto layout = std::find_if(kLayouts.begin(), kLayouts.end(), [&](const auto& entry) {
+        return entry.first == settings.layout;
+    });
+    if (layout == kLayouts.end()) return std::nullopt;
+    config.layout = layout->second;
+    config.fill = settings.fill;
+    config.swap_left_right = settings.swapLeftRight;
+    config.mono = settings.mono;
+    config.subwoofer = settings.subwoofer;
+    config.small_speakers = settings.smallSpeakers;
+    config.crossover_hz = settings.crossoverHz;
+    if (settings.levelsDb.size() > dsp::kMaxChannels ||
+        settings.delaysMs.size() > dsp::kMaxChannels) {
+        return std::nullopt;
+    }
+    std::copy(settings.levelsDb.begin(), settings.levelsDb.end(), config.levels_db.begin());
+    std::copy(settings.delaysMs.begin(), settings.delaysMs.end(), config.delays_ms.begin());
+    // Speakers the layout does not have carry nothing.
+    for (size_t i = dsp::LayoutRoles(config.layout).size(); i < dsp::kMaxChannels; ++i) {
+        config.levels_db[i] = 0;
+        config.delays_ms[i] = 0;
+    }
+    if (!config.IsValid()) return std::nullopt;
+    return config;
+}
+
 CardStatus MakeCardStatus(const alsa::CardInfo& card, const routing::DeviceInventory& inventory) {
     CardStatus status{.index = card.index,
                       .id = card.id,
@@ -98,8 +154,19 @@ CardStatus MakeCardStatus(const alsa::CardInfo& card, const routing::DeviceInven
 
 ControlService::ControlService(std::shared_ptr<ModuleMainline> module,
                                std::shared_ptr<MixerSettings> mixer,
-                               std::shared_ptr<SettingsStore> settings)
-    : module_(std::move(module)), mixer_(std::move(mixer)), settings_(std::move(settings)) {}
+                               std::shared_ptr<SettingsStore> settings,
+                               std::shared_ptr<OutputSettingsStore> outputs)
+    : module_(std::move(module)),
+      mixer_(std::move(mixer)),
+      settings_(std::move(settings)),
+      outputs_(std::move(outputs)) {}
+
+const routing::Endpoint* ControlService::FindOutput(const std::string& key) const {
+    for (const routing::Endpoint& endpoint : module_->inventory().endpoints()) {
+        if (!endpoint.is_input && !endpoint.IsNull() && endpoint.Key() == key) return &endpoint;
+    }
+    return nullptr;
+}
 
 bool ControlService::UsesCard(int32_t card) const {
     const auto& cards = module_->inventory().cards();
@@ -324,6 +391,55 @@ ndk::ScopedAStatus ControlService::revertSettings() {
 ndk::ScopedAStatus ControlService::resetSettings() {
     return settings_->Reset() ? ndk::ScopedAStatus::ok()
                               : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+}
+
+ndk::ScopedAStatus ControlService::getOutputSettings(const std::string& key,
+                                                     OutputSettings* _aidl_return) {
+    if (FindOutput(key) == nullptr) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    *_aidl_return = ToAidl(module_->output_configs()->Get(key));
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::setOutputSettings(const std::string& key,
+                                                     const OutputSettings& settings) {
+    const routing::Endpoint* endpoint = FindOutput(key);
+    const auto config = FromAidl(settings);
+    if (endpoint == nullptr || !config.has_value() ||
+        dsp::LayoutRoles(config->layout).size() > endpoint->caps.max_channels) {
+        LOG(WARNING) << __func__ << ": rejected for " << key << ": " << settings.toString();
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    outputs_->Set(key, *config);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::resetOutputSettings(const std::string& key) {
+    if (FindOutput(key) == nullptr) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    outputs_->Reset(key);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::playTestTone(const std::string& key, int32_t channel,
+                                                int32_t duration_ms) {
+    if (FindOutput(key) == nullptr) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    const std::shared_ptr<dsp::OutputConfigs>& configs = module_->output_configs();
+    if (channel < 0) {
+        configs->StopTone();
+        return ndk::ScopedAStatus::ok();
+    }
+    const size_t speakers = dsp::LayoutRoles(configs->Get(key).layout).size();
+    if (static_cast<size_t>(channel) >= speakers) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    configs->StartTone(key, static_cast<unsigned int>(channel),
+                       std::chrono::milliseconds(std::clamp(duration_ms, 100, 5000)));
+    return ndk::ScopedAStatus::ok();
 }
 
 }  // namespace aidl::android::hardware::audio::core::mainline::control

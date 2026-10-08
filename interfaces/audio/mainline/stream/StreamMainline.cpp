@@ -25,6 +25,7 @@ namespace aidl::android::hardware::audio::core::mainline {
 using ::aidl::android::hardware::audio::common::isBitPositionFlagSet;
 using ::aidl::android::hardware::audio::common::SinkMetadata;
 using ::aidl::android::hardware::audio::common::SourceMetadata;
+using ::aidl::android::media::audio::common::AudioChannelLayout;
 using ::aidl::android::media::audio::common::AudioDevice;
 using ::aidl::android::media::audio::common::AudioIoFlags;
 using ::aidl::android::media::audio::common::AudioOffloadInfo;
@@ -51,6 +52,51 @@ std::unique_ptr<passthrough::PassthroughSink> MakePassthroughSink(const StreamDe
                     .channels = alsa::ChannelCount(context.getChannelLayout()),
                     .latency_ms = context.getNominalLatencyMs()},
             deps.make_hdmi_control);
+}
+
+// The speaker position of each channel of `layout`, in interleaved order:
+// positional masks list their channels by ascending bit.
+std::vector<dsp::Role> RolesOf(const AudioChannelLayout& layout) {
+    const unsigned int channels = alsa::ChannelCount(layout);
+    if (layout.getTag() != AudioChannelLayout::layoutMask) {
+        return std::vector<dsp::Role>(channels, dsp::Role::kOther);
+    }
+    std::vector<dsp::Role> roles;
+    const int32_t mask = layout.get<AudioChannelLayout::layoutMask>();
+    for (int bit = 0; bit < 32; ++bit) {
+        const int32_t channel = 1 << bit;
+        if ((mask & channel) == 0) continue;
+        switch (channel) {
+            case AudioChannelLayout::CHANNEL_FRONT_LEFT:
+                roles.push_back(dsp::Role::kFrontLeft);
+                break;
+            case AudioChannelLayout::CHANNEL_FRONT_RIGHT:
+                roles.push_back(dsp::Role::kFrontRight);
+                break;
+            case AudioChannelLayout::CHANNEL_FRONT_CENTER:
+                roles.push_back(dsp::Role::kCenter);
+                break;
+            case AudioChannelLayout::CHANNEL_LOW_FREQUENCY:
+                roles.push_back(dsp::Role::kLfe);
+                break;
+            case AudioChannelLayout::CHANNEL_BACK_LEFT:
+                roles.push_back(dsp::Role::kRearLeft);
+                break;
+            case AudioChannelLayout::CHANNEL_BACK_RIGHT:
+                roles.push_back(dsp::Role::kRearRight);
+                break;
+            case AudioChannelLayout::CHANNEL_SIDE_LEFT:
+                roles.push_back(dsp::Role::kSideLeft);
+                break;
+            case AudioChannelLayout::CHANNEL_SIDE_RIGHT:
+                roles.push_back(dsp::Role::kSideRight);
+                break;
+            default:
+                roles.push_back(dsp::Role::kOther);
+                break;
+        }
+    }
+    return roles;
 }
 
 // How often a direct stream checks whether the mixed stream it pre-empted
@@ -85,6 +131,7 @@ StreamMainline::StreamMainline(StreamContext* context, const Metadata& metadata,
       buffer_size_frames_(getContext().getBufferSizeInFrames()),
       channel_count_(alsa::ChannelCount(getContext().getChannelLayout())),
       alsa_format_(alsa::ToAlsaFormat(getContext().getFormat())),
+      channel_roles_(RolesOf(getContext().getChannelLayout())),
       is_fast_(HasFastFlag(getContext().getFlags())),
       passthrough_(MakePassthroughSink(deps_, getContext(), is_input_)),
       arbiter_client_(MakeArbiterClient(deps_, getContext(), buffer_size_frames_)),
@@ -217,6 +264,43 @@ alsa::PcmConfig StreamMainline::MakePcmConfig() const {
     return config;
 }
 
+std::unique_ptr<dsp::OutputProcessor> StreamMainline::MakeProcessor(const std::string& key) const {
+    if (is_input_ || passthrough_ != nullptr || !alsa_format_.has_value() ||
+        deps_.output_configs == nullptr) {
+        return nullptr;
+    }
+    const dsp::OutputConfig config = deps_.output_configs->Get(key);
+    if (config.IsIdentity() && !deps_.output_configs->ToneFor(key).has_value()) return nullptr;
+    auto processor =
+            dsp::OutputProcessor::Create(config, channel_roles_, *alsa_format_,
+                                         static_cast<unsigned int>(getContext().getSampleRate()));
+    if (processor == nullptr) {
+        LOG(WARNING) << Tag() << __func__ << ": can not process "
+                     << getContext().getFormat().toString() << " for " << key
+                     << ", playing it unprocessed";
+    }
+    return processor;
+}
+
+void StreamMainline::ApplyOutputConfigChanges() {
+    if (deps_.output_configs == nullptr || is_input_ || passthrough_ != nullptr) return;
+    const uint64_t version = deps_.output_configs->version();
+    if (version == output_configs_version_) return;
+    output_configs_version_ = version;
+    for (OpenPcm& open : pcms_) {
+        auto processor = MakeProcessor(open.key);
+        const unsigned int channels =
+                processor != nullptr ? processor->output_channels() : channel_count_;
+        if (channels != open.pcm->config().channels) {
+            LOG(INFO) << Tag() << __func__ << ": " << open.key << " now takes " << channels
+                      << " channels, reopening the devices";
+            ClosePcms();
+            return;
+        }
+        open.processor = std::move(processor);
+    }
+}
+
 bool StreamMainline::AcquirePcm(const routing::Endpoint& endpoint, bool quiet) {
     using Result = routing::PcmArbiter::Result;
     const alsa::PcmIdentity& pcm = endpoint.pcm_identity;
@@ -280,7 +364,11 @@ void StreamMainline::OpenEndpoint(const routing::Endpoint& endpoint, const alsa:
         }
     }
     const snd_pcm_stream_t direction = is_input_ ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK;
-    auto pcm = alsa::Pcm::Open(endpoint.pcm_name, direction, config);
+    std::string key = endpoint.Key();
+    std::unique_ptr<dsp::OutputProcessor> processor = MakeProcessor(key);
+    alsa::PcmConfig endpoint_config = config;
+    if (processor != nullptr) endpoint_config.channels = processor->output_channels();
+    auto pcm = alsa::Pcm::Open(endpoint.pcm_name, direction, endpoint_config);
     if (pcm == nullptr) {
         LOG(ERROR) << Tag() << __func__ << ": failed to open " << endpoint.ToString();
         if (IsArbitrated(identity)) deps_.pcm_arbiter->Release(*arbiter_client_, identity);
@@ -294,11 +382,21 @@ void StreamMainline::OpenEndpoint(const routing::Endpoint& endpoint, const alsa:
                      << buffer_size_frames_ << " frame burst; the FastMixer will underrun";
     }
     // Pcm::Open() hands out a prepared device.
-    pcms_.push_back(OpenPcm{.identity = identity, .pcm = std::move(pcm)});
+    if (processor != nullptr) {
+        LOG(INFO) << Tag() << __func__ << ": processing for " << key << ": "
+                  << processor->config().Serialize();
+    }
+    pcms_.push_back(OpenPcm{.identity = identity,
+                            .pcm = std::move(pcm),
+                            .key = std::move(key),
+                            .processor = std::move(processor)});
 }
 
 bool StreamMainline::OpenPcms() {
     ClosePcms();
+    // Read before creating the processors, so that a change while opening is
+    // picked up by the next transfer.
+    if (deps_.output_configs != nullptr) output_configs_version_ = deps_.output_configs->version();
     const alsa::PcmConfig config = MakePcmConfig();
     for (const routing::Endpoint& endpoint : active_endpoints_) {
         if (endpoint.IsNull()) continue;
@@ -451,6 +549,7 @@ void StreamMainline::ApplyPendingEndpoints() {
 
 ::android::status_t StreamMainline::start() {
     ApplyPendingEndpoints();
+    ApplyOutputConfigChanges();
     return EnsureDevicesReady();
 }
 
@@ -501,19 +600,30 @@ void StreamMainline::ApplyPendingEndpoints() {
     const snd_pcm_format_t format = *alsa_format_;
     alsa::ApplyGain(buffer, frame_count, channel_count_, format,
                     gain_.load(std::memory_order_relaxed));
-    alsa::ReorderChannelsAndroidToAlsa(buffer, frame_count, channel_count_, format,
-                                       getContext().getChannelLayout());
     int32_t latency = 0;
     bool any_ok = false;
-    for (auto& open : pcms_) {
-        const snd_pcm_sframes_t written = open.pcm->Write(buffer, frame_count);
+    auto write = [&](OpenPcm& open, const void* data) {
+        const snd_pcm_sframes_t written = open.pcm->Write(data, frame_count);
         if (written < 0) {
-            LOG(WARNING) << Tag() << __func__ << ": write to " << open.pcm->name()
+            LOG(WARNING) << Tag() << "TransferOutput: write to " << open.pcm->name()
                          << " failed: " << alsa::ErrorString(static_cast<int>(written));
-            continue;
+            return;
         }
         any_ok = true;
         latency = std::max(latency, open.pcm->LatencyMs());
+    };
+    // Processors read the stream's own channel order, so they go first; they
+    // produce the hardware's order themselves.
+    for (auto& open : pcms_) {
+        if (open.processor == nullptr) continue;
+        open.processor->SetTestTone(deps_.output_configs->ToneFor(open.key));
+        write(open, open.processor->Process(buffer, frame_count));
+    }
+    alsa::ReorderChannelsAndroidToAlsa(buffer, frame_count, channel_count_, format,
+                                       getContext().getChannelLayout());
+    for (auto& open : pcms_) {
+        if (open.processor != nullptr) continue;
+        write(open, buffer);
     }
     if (!any_ok) return ::android::INVALID_OPERATION;
     *latency_ms = latency;
@@ -544,6 +654,7 @@ void StreamMainline::ApplyPendingEndpoints() {
     // Routing may have changed underneath a running stream, and a burst may
     // arrive in STANDBY without a preceding start().
     ApplyPendingEndpoints();
+    ApplyOutputConfigChanges();
     RETURN_STATUS_IF_ERROR(EnsureDevicesReady());
     if (passthrough_ != nullptr) {
         // Frames of the stream's frame size: bytes for encoded formats.

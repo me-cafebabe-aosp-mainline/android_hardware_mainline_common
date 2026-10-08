@@ -114,6 +114,7 @@ ModuleMainline::ModuleMainline(std::unique_ptr<Configuration>&& config,
       routing_(std::make_shared<routing::RoutingController>(inventory_)),
       pcm_arbiter_(std::make_shared<routing::PcmArbiter>()),
       mic_muted_(std::make_shared<std::atomic<bool>>(false)),
+      output_configs_(std::make_shared<dsp::OutputConfigs>()),
       fast_output_port_id_(FindFastOutputPort()),
       hbr_failures_(std::make_shared<passthrough::HbrFailures>()),
       hdmi_control_factory_(MakeHdmiControlFactory(properties_, inventory_, hbr_failures_)),
@@ -145,7 +146,8 @@ StreamDeps ModuleMainline::MakeStreamDeps() const {
                       .routing = routing_,
                       .pcm_arbiter = pcm_arbiter_,
                       .mic_muted = mic_muted_,
-                      .make_hdmi_control = hdmi_control_factory_};
+                      .make_hdmi_control = hdmi_control_factory_,
+                      .output_configs = output_configs_};
 }
 
 // --- Optional sub-interfaces -------------------------------------------------

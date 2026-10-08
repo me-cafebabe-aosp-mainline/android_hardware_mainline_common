@@ -29,6 +29,7 @@ using aidl::android::hardware::audio::core::mainline::ModuleMainline;
 using aidl::android::hardware::audio::core::mainline::Properties;
 using aidl::android::hardware::audio::core::mainline::control::ControlService;
 using aidl::android::hardware::audio::core::mainline::control::MixerSettings;
+using aidl::android::hardware::audio::core::mainline::control::OutputSettingsStore;
 using aidl::android::hardware::audio::core::mainline::control::SettingsStore;
 
 namespace {
@@ -112,11 +113,13 @@ int main() {
     auto mixer = std::make_shared<MixerSettings>(module->inventory().cards());
     mixer->ApplyAll();
     module->SetDeviceEnabledListener([mixer](int card) { mixer->Apply(card); });
+    // Output processing stored through IControl, in force before any stream opens.
+    auto outputs = std::make_shared<OutputSettingsStore>(module->output_configs());
     RegisterModule(module, "default", &modules);
 
     // vendor.mainline.audio.IControl/default: the settings app's view of the
     // module. The HAL works without it, so a failure is only logged.
-    auto control = ndk::SharedRefBase::make<ControlService>(module, mixer, settings);
+    auto control = ndk::SharedRefBase::make<ControlService>(module, mixer, settings, outputs);
     const std::string control_fqn = std::string(ControlService::descriptor) + "/default";
     if (const binder_status_t status =
                 AServiceManager_addService(control->asBinder().get(), control_fqn.c_str());

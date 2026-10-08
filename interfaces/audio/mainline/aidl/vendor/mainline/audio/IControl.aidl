@@ -6,6 +6,7 @@
 package vendor.mainline.audio;
 
 import vendor.mainline.audio.MixerControl;
+import vendor.mainline.audio.OutputSettings;
 import vendor.mainline.audio.Setting;
 import vendor.mainline.audio.SettingChange;
 import vendor.mainline.audio.Status;
@@ -78,4 +79,31 @@ interface IControl {
      * properties. EX_ILLEGAL_STATE when that can not be stored.
      */
     void resetSettings();
+
+    /**
+     * The processing of the output endpoint `key` (EndpointStatus.key). Fails
+     * with EX_ILLEGAL_ARGUMENT for a key that is no output of the HAL.
+     */
+    OutputSettings getOutputSettings(String key);
+
+    /**
+     * Sets and stores the processing of an output; it applies right away.
+     * Fails with EX_ILLEGAL_ARGUMENT for an unknown output, a value out of
+     * range, or a layout with more channels than the output has.
+     */
+    void setOutputSettings(String key, in OutputSettings settings);
+
+    /** Returns an output to the defaults: no processing. */
+    void resetOutputSettings(String key);
+
+    /**
+     * Plays pink noise on one speaker of an output instead of what its streams
+     * play, for `durationMs` (100 to 5000), or stops with a negative channel.
+     * `channel` counts the speakers of the output's layout as in
+     * OutputSettings.levelsDb, so the output needs a layout other than
+     * LAYOUT_AUTO. Only plays while a stream plays to the output:
+     * the caller keeps one running, e.g. silence. Fails with
+     * EX_ILLEGAL_ARGUMENT for an unknown output or channel.
+     */
+    void playTestTone(String key, int channel, int durationMs);
 }
