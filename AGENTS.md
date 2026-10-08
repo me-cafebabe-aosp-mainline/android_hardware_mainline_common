@@ -27,7 +27,8 @@ Repository-wide conventions that apply to every component are split by topic
 under `docs/`, both for AI agents and for human contributors, so you only
 have to read what's relevant to the task at hand:
 
-- `docs/CODE_STYLE.md` — language style, error handling, formatting tools.
+- `docs/CODE_STYLE.md` — language style (C++, Rust, Kotlin apps), error
+  handling, formatting tools.
 - `docs/COMMIT_CONVENTIONS.md` — commit subject/body/trailer format.
 - `docs/WORKFLOW.md` — what an AI agent may and may not do (builds, tests,
   references).

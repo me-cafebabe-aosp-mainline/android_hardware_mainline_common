@@ -27,6 +27,43 @@ and no `panic!()` on recoverable errors in Rust).
   properties, string parsing (`android::base::Parse*`), and file descriptors
   (`unique_fd`).
 
+## Kotlin (apps)
+
+Apps (settings apps of a HAL, see `docs/HAL_APPS.md`) are written in Kotlin;
+Java only appears as generated AIDL code.
+
+- **Structure.** An activity hosts the pages; a page is a fragment that only
+  renders. Its state lives in a `ViewModel` as a `StateFlow`, so that it
+  survives configuration changes, and the fragment collects it with
+  `repeatOnLifecycle(Lifecycle.State.STARTED)`.
+- **One owner per side effect.** Every call to the HAL goes through one
+  class (`HalControl`), every change of a system setting through one class
+  (e.g. `AudioRouting`), so that no page can bypass its checks, storage or
+  confirmation flow.
+- **No blocking on the main thread.** Binder calls, to the HAL or to
+  framework services that may block, run on `Dispatchers.IO` from
+  `viewModelScope` / `lifecycleScope`. A `BroadcastReceiver` that has work
+  to do uses `goAsync()` and a worker thread.
+- **Failures degrade, never crash.** The HAL may be restarting or absent:
+  its owner class catches `RemoteException` and `SecurityException` and
+  returns null, and the page shows less. Code that runs inside another
+  process's call (a `ContentProvider` serving a Settings tile) must not
+  throw at all.
+- **Resources.** Every user visible text is a string resource, as a whole
+  sentence with `xliff:g` placeholders and a comment giving an example; no
+  sentences assembled in code. Counts use `plurals`. Escape apostrophes
+  (`\'`). Units belong in the string ("80 Hz"), not in code.
+- **Preferences built in code** are `isPersistent = false`: their values
+  live in the HAL or the framework, not in the app's SharedPreferences. Give
+  them stable keys, and update a page in place when its structure did not
+  change, so that a value change does not reset the scroll position or a
+  moving slider.
+- **Edge to edge.** Pages handle window insets (the shared
+  `SettingsFragment` does), since apps targeting the current SDK draw behind
+  the system bars.
+- **R8.** Keep classes instantiated by name (manifest, preference
+  `fragment`) and AIDL parcelables in `proguard.flags`.
+
 ## Copyright header
 
 Every new source file, in any language, starts with the SPDX license header;
@@ -49,6 +86,14 @@ Source files:
  */
 ```
 
+XML files (manifests, resources), after the XML declaration if there is one:
+```
+<!--
+    SPDX-FileCopyrightText: The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+```
+
 ## Formatting tools
 
 Run a formatter on the files you actually touched before committing:
@@ -59,6 +104,8 @@ Run a formatter on the files you actually touched before committing:
   `prebuilts/clang/host/linux-x86/clang-r*/bin/clang-format`.
 - Rust: `rustfmt <files>` using the repository's `rustfmt.toml`
   (`hardware/mainline/common/rustfmt.toml`).
+- Kotlin: `java -jar prebuilts/build-tools/common/framework/ktfmt.jar
+  --kotlinlang-style <files>` (relative to the AOSP root).
 - `Android.bp`: `out/host/linux-x86/bin/bpfmt -w <files>` (relative to the
   AOSP root; it's a build output, not a prebuilt). If it doesn't exist yet,
   building it yourself would violate `docs/WORKFLOW.md` — ask the maintainer
