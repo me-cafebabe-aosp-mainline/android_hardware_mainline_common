@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Virtual sensors</string>
+    <string name="settings_title">Virtual sensors</string>
+
+    <!-- Tile summary -->
+    <plurals name="summary_sensors">
+        <!-- e.g. "3 sensors, 1 in use" -->
+        <item quantity="one"><xliff:g id="count">%1$d</xliff:g> sensor, <xliff:g id="in_use">%2$d</xliff:g> in use</item>
+        <item quantity="other"><xliff:g id="count">%1$d</xliff:g> sensors, <xliff:g id="in_use">%2$d</xliff:g> in use</item>
+    </plurals>
+    <string name="summary_none">No virtual sensors</string>
+    <string name="summary_unavailable">Not available</string>
+
+    <!-- Page -->
+    <string name="hal_unavailable">The virtual sensors backend does not answer. It needs the mainline sensors HAL with the virtual backend in its backend list.</string>
+    <string name="no_sensors">No virtual sensors are configured. Set vendor.sensors.virtual.sensors, e.g. to \"accel,light\", and reboot.</string>
+    <string name="sensors_footer">Apps see these sensors like hardware ones. What you set is kept across reboots. Which sensors exist is set by vendor.sensors.virtual.sensors and changes after a reboot.</string>
+
+    <!-- Device position, for the accelerometer and gravity sensors -->
+    <string name="position_title">Device position</string>
+    <string name="position_portrait">Upright</string>
+    <string name="position_landscape_left">On its side, top to the left</string>
+    <string name="position_reverse_portrait">Upside down</string>
+    <string name="position_landscape_right">On its side, top to the right</string>
+    <string name="position_face_up">Lying flat, screen up</string>
+    <string name="position_face_down">Lying flat, screen down</string>
+    <string name="position_other">Custom values</string>
+
+    <!-- A sensor; e.g. "In use at 50 Hz · Set by you" -->
+    <string name="status_active">In use at <xliff:g id="rate">%1$s</xliff:g> Hz</string>
+    <string name="status_active_no_rate">In use</string>
+    <string name="status_inactive">Not in use</string>
+    <string name="status_stored">Set by you</string>
+    <string name="axis_x">X</string>
+    <string name="axis_y">Y</string>
+    <string name="axis_z">Z</string>
+    <string name="value_title">Value</string>
+    <!-- e.g. "9.81 m/s²" -->
+    <string name="value_with_unit"><xliff:g id="value">%1$s</xliff:g> <xliff:g id="unit">%2$s</xliff:g></string>
+    <string name="proximity_near">Object near</string>
+    <string name="exact_title">Exact values</string>
+    <!-- e.g. "From -39.23 to 39.23 m/s², separated by commas" -->
+    <string name="exact_message">From <xliff:g id="min">%1$s</xliff:g> to <xliff:g id="max">%2$s</xliff:g> <xliff:g id="unit">%3$s</xliff:g>, separated by commas</string>
+    <plurals name="exact_invalid">
+        <item quantity="one">Enter <xliff:g id="count">%d</xliff:g> number</item>
+        <item quantity="other">Enter <xliff:g id="count">%d</xliff:g> numbers, separated by commas</item>
+    </plurals>
+    <string name="reset_title">Reset</string>
+    <string name="reset_summary">Return to the default values</string>
+    <string name="reset_default">Reports the default values</string>
+
+    <!-- Units -->
+    <string name="unit_acceleration">m/s²</string>
+    <string name="unit_angular_speed">rad/s</string>
+    <string name="unit_magnetic_field">µT</string>
+    <string name="unit_light">lx</string>
+    <string name="unit_pressure">hPa</string>
+    <string name="unit_distance">cm</string>
+    <string name="unit_temperature">°C</string>
+    <string name="unit_humidity" formatted="false">%</string>
+    <string name="unit_angle">°</string>
+    <string name="unit_none" translatable="false"></string>
+</resources>

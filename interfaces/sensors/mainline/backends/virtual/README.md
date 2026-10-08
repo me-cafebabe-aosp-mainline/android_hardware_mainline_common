@@ -2,7 +2,8 @@
 
 Provides sensors whose values the user sets, through
 `vendor.mainline.sensors.IVirtualSensors/default` (see [`../../aidl`](../../aidl)),
-normally from the settings app of the HAL's APEX. Useful on devices without
+normally from the settings app of the HAL's APEX
+([`../../settings`](../../settings/README.md)). Useful on devices without
 the sensor hardware (virtual machines, boards, tablets without a proximity
 sensor) and to try apps with specific sensor values.
 

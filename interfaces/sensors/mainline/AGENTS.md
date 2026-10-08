@@ -36,6 +36,7 @@ to the `ISensorBackend` interface. Everything ships in the vendor APEX
 | `backends/input/`                           | Input backend: `InputBackend`, `InputDevice`                          |
 | `backends/mock/`                            | Mock backend (fallback only)                                          |
 | `backends/virtual/`                         | Virtual backend (build option): `VirtualBackend`, `VirtualSensorsService` (`IVirtualSensors/default`) |
+| `settings/`                                 | Settings app of the virtual backend (Kotlin), in the APEX with it; own `AGENTS.md` |
 | `aidl/`                                     | `vendor.mainline.sensors`: `IVirtualSensors`, the control interface of the virtual backend for the settings app, and its framework compatibility matrix entry. Not frozen yet |
 
 Build modules: `android.hardware.sensors-service.mainline` (binary),

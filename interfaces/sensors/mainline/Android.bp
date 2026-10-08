@@ -19,9 +19,10 @@
 //                                       type the HAL can provide.
 //   bool include_virtual_backend      - bundle the virtual backend
 //                                       (backends/virtual), whose values the
-//                                       user sets, with its control interface,
-//                                       and add it to the built-in default
-//                                       backend list.
+//                                       user sets, with its control interface
+//                                       and settings app (settings/), and add
+//                                       it to the built-in default backend
+//                                       list.
 
 // Interface between the frontend and the backends. Out-of-tree backends depend
 // on this module as "//hardware/mainline/common:libsensors_mainline_headers".
@@ -159,6 +160,12 @@ apex {
     vendor: true,
 
     binaries: ["android.hardware.sensors-service.mainline"],
+    // The settings app of the virtual backend (settings/), a vendor
+    // privileged app.
+    apps: select(soong_config_variable("sensors_hal_mainline", "include_virtual_backend"), {
+        true: ["MainlineSensorsSettings"],
+        default: [],
+    }),
     prebuilts: [
         "com.android.hardware.sensors.mainline-linker-config",
         "sensors-mainline.xml",

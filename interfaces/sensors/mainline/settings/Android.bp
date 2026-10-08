@@ -1,0 +1,40 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// Settings app of the virtual sensors backend of the mainline Sensors HAL, see
+// README.md. It ships inside the HAL's APEX together with the backend, which
+// makes it a vendor app: it is built against the module SDK (no hidden APIs,
+// no platform certificate) and its SELinux domain comes from the device's
+// vendor policy.
+android_app {
+    name: "MainlineSensorsSettings",
+
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+
+    // ServiceManager.waitForDeclaredService() for IVirtualSensors.
+    sdk_version: "module_current",
+    // Matched by privilege in the device's seapp_contexts. It requests no
+    // privileged permission, so it needs no allowlist.
+    privileged: true,
+
+    static_libs: [
+        "androidx.activity_activity-ktx",
+        "androidx.appcompat_appcompat",
+        "androidx.fragment_fragment-ktx",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.lifecycle_lifecycle-viewmodel-ktx",
+        "androidx.preference_preference",
+        "com.google.android.material_material",
+        "kotlinx_coroutines_android",
+        "vendor.mainline.sensors-V1-java",
+    ],
+
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
+
+    apex_available: ["com.android.hardware.sensors.mainline"],
+}

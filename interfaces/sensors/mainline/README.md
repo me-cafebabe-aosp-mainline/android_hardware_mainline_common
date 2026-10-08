@@ -210,7 +210,12 @@ tables when the kernel does not expose it).
 
 With `include_virtual_backend`, the virtual backend provides sensors whose
 values the user sets, see [backends/virtual/README.md](backends/virtual/README.md).
-It serves `vendor.mainline.sensors.IVirtualSensors/default` (`aidl/`) from
+The APEX then also carries its settings app, `MainlineSensorsSettings`, shown
+as **Settings › System › Virtual sensors**; see
+[`settings/README.md`](settings/README.md). It needs the device's SELinux
+policy to give it a domain (vendor `seapp_contexts`).
+
+The backend serves `vendor.mainline.sensors.IVirtualSensors/default` (`aidl/`) from
 the HAL process; the framework does not use it.
 
 The interface is not frozen yet. The product has to install its framework
@@ -267,6 +272,7 @@ backends/input/               input backend
 backends/mock/                mock backend
 backends/virtual/             virtual backend
 aidl/                         vendor.mainline.sensors (IVirtualSensors)
+settings/                     settings app of the virtual backend
 ```
 
 ## License
