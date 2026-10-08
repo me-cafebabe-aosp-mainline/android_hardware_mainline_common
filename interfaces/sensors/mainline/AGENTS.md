@@ -35,12 +35,14 @@ to the `ISensorBackend` interface. Everything ships in the vendor APEX
 | `backends/iio/`                             | IIO backend: `IioBackend`, `IioDevice`, `IioSensor`, `IioChannel`, `IioTrigger`, `IioTypes` |
 | `backends/input/`                           | Input backend: `InputBackend`, `InputDevice`                          |
 | `backends/mock/`                            | Mock backend (fallback only)                                          |
+| `backends/virtual/`                         | Virtual backend (build option): `VirtualBackend`, `VirtualSensorsService` (`IVirtualSensors/default`) |
 | `aidl/`                                     | `vendor.mainline.sensors`: `IVirtualSensors`, the control interface of the virtual backend for the settings app, and its framework compatibility matrix entry. Not frozen yet |
 
 Build modules: `android.hardware.sensors-service.mainline` (binary),
 `libsensors_mainline_frontend` (static), `libsensors_mainline_headers`
 (header lib, public), `libsensors_common`, `libsensors_hwdb` (static),
-`libsensors_iio`, `libsensors_input`, `libsensors_mock` (shared),
+`libsensors_iio`, `libsensors_input`, `libsensors_mock`,
+`libsensors_virtual` (shared), `vendor.mainline.sensors` (AIDL),
 `com.android.hardware.sensors.mainline` (APEX). External dependencies:
 `libhwdb` and `libsmbios_parser` from `hardware/mainline/common/libraries/`.
 
@@ -100,6 +102,22 @@ Build modules: `android.hardware.sensors-service.mainline` (binary),
   therefore leave it in the state it had before `Initialize()`: drop the
   discovered sensors and reset the local handle counter, so that a second
   `Initialize()` neither duplicates sensors nor shifts handles.
+
+## Virtual backend specifics
+
+* The backend registers `vendor.mainline.sensors.IVirtualSensors/default`
+  itself (once per process, pinning its library); the frontend knows nothing
+  about it beyond the backend name in the build-time default list.
+* `VirtualSensorsService::Detach()` in `Deinitialize()` waits for running
+  calls; keep it the first thing there and never call it with `mutex_` held.
+* Events are only posted from the per-sensor `PeriodicWorker`, never from a
+  Binder call: `SetValues()` pokes the worker.
+* The stored values are keyed by the type's configuration name, never by
+  handle, which shifts when `virtual.sensors` changes.
+* The interface is unfrozen, so methods and fields can still change freely.
+  Once it is frozen, every change needs a new version (`aidl_api/`), and the
+  VINTF fragment, the compatibility matrix and the `-V<n>-` library names
+  have to follow.
 
 ## IIO backend specifics
 

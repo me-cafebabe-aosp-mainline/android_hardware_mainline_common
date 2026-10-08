@@ -1,0 +1,7 @@
+# Values the user set for the sensors of the virtual backend. init reads this
+# file once /data is mounted (post-fs-data), so early-boot creates the
+# directory before the hal class starts. apexd only sets apex.<name>.ready on a
+# rebootless update, never at boot. Without the directory the values are not
+# kept across restarts of the HAL.
+on early-boot
+    mkdir /data/vendor/mainline_sensors 0770 system system

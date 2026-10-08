@@ -23,7 +23,16 @@ namespace {
 #define LOAD_CUSTOM_BACKENDS ""
 #endif
 
-const char* const kDefaultBackends[] = {"iio", "input", "mock"};
+// The virtual backend comes with the APEX only when the build asks for it
+// (include_virtual_backend); its sensors come before the fallback mock ones.
+const char* const kDefaultBackends[] = {
+        "iio",
+        "input",
+#ifdef INCLUDE_VIRTUAL_BACKEND
+        "virtual",
+#endif
+        "mock",
+};
 
 const char* const kSearchDirs[] = {
 #ifdef __LP64__

@@ -47,8 +47,10 @@ everything to be tuned through configuration files and properties.
 | IIO     | `libsensors_iio.so`  | Linux IIO subsystem (`drivers/iio/`)     | [backends/iio/README.md](backends/iio/README.md) |
 | Input   | `libsensors_input.so`| Linux input subsystem (`drivers/input/misc/`) | [backends/input/README.md](backends/input/README.md) |
 | Mock    | `libsensors_mock.so` | Fake data, fallback only                 | [backends/mock/README.md](backends/mock/README.md) |
+| Virtual | `libsensors_virtual.so` | Values set by the user (build option) | [backends/virtual/README.md](backends/virtual/README.md) |
 
-Backends are loaded in the order `iio, input, mock` by default. The mock
+Backends are loaded in the order `iio, input, mock` by default, or
+`iio, input, virtual, mock` when the virtual backend is bundled. The mock
 backend is *fallback only*: its sensors are dropped for every type a real
 backend already provides.
 
@@ -75,6 +77,7 @@ Soong config variables (namespace `sensors_hal_mainline`):
 | `include_custom_backends`      | string list | Extra backend modules bundled in the APEX                      |
 | `run_as_root`                  | bool        | Run the service as root (development only)                     |
 | `include_all_permission_xmls`  | bool        | Ship the `android.hardware.sensor.*` feature XMLs              |
+| `include_virtual_backend`      | bool        | Bundle the virtual backend and its control interface, and add it to the built-in default backend list |
 
 Example (`device/mainline/qcom-common/optional/sensors-hal_mainline/product.mk`):
 
@@ -203,13 +206,25 @@ tables when the kernel does not expose it).
   DATA_INJECTION)` returns `EX_UNSUPPORTED_OPERATION` otherwise.
 * Direct channels are not supported.
 
+## Virtual sensors
+
+With `include_virtual_backend`, the virtual backend provides sensors whose
+values the user sets, see [backends/virtual/README.md](backends/virtual/README.md).
+It serves `vendor.mainline.sensors.IVirtualSensors/default` (`aidl/`) from
+the HAL process; the framework does not use it.
+
+The interface is not frozen yet. The product has to install its framework
+compatibility matrix entry, `framework_compatibility_matrix.mainline.sensors.xml`
+(on `/product`), so that VINTF checks know the HAL; the device's SELinux
+policy decides who may use the service.
+
 ## Debugging
 
 Everything of interest is logged with tags starting with `MainlineSensors`:
 
 ```
 adb logcat -s MainlineSensors MainlineSensorsManager MainlineSensorsLoader \
-    MainlineSensorsIio MainlineSensorsInput MainlineSensorsMock \
+    MainlineSensorsIio MainlineSensorsInput MainlineSensorsMock MainlineSensorsVirtual \
     MainlineSensorsHwdb MainlineSensorsSettings MainlineSensorsComposite
 ```
 
@@ -229,7 +244,10 @@ policy has to allow, in addition to the platform rules:
 * writing to `/config/iio/triggers/hrtimer` (configfs) for hrtimer triggers,
 * reading `/sys/class/input/*/device/modalias` and `/sys/class/dmi/id/*`,
 * reading `vendor.sensors.` properties (define a vendor property type for the
-  prefix in `property_contexts`).
+  prefix in `property_contexts`),
+* with the virtual backend: registering
+  `vendor.mainline.sensors.IVirtualSensors/default` and using
+  `/data/vendor/mainline_sensors`.
 
 ## Layout
 
@@ -247,6 +265,8 @@ utils/hwdb/                   libsensors_hwdb
 backends/iio/                 IIO backend
 backends/input/               input backend
 backends/mock/                mock backend
+backends/virtual/             virtual backend
+aidl/                         vendor.mainline.sensors (IVirtualSensors)
 ```
 
 ## License

@@ -17,6 +17,11 @@
 //   bool run_as_root                  - run the service as root (development).
 //   bool include_all_permission_xmls  - ship the feature XMLs of every sensor
 //                                       type the HAL can provide.
+//   bool include_virtual_backend      - bundle the virtual backend
+//                                       (backends/virtual), whose values the
+//                                       user sets, with its control interface,
+//                                       and add it to the built-in default
+//                                       backend list.
 
 // Interface between the frontend and the backends. Out-of-tree backends depend
 // on this module as "//hardware/mainline/common:libsensors_mainline_headers".
@@ -77,6 +82,9 @@ cc_library_static {
     cflags: select(soong_config_variable("sensors_hal_mainline", "load_custom_backends"), {
         any @ flag_val: ["-DLOAD_CUSTOM_BACKENDS=\"" + flag_val + "\""],
         default: ["-DLOAD_CUSTOM_BACKENDS=\"\""],
+    }) + select(soong_config_variable("sensors_hal_mainline", "include_virtual_backend"), {
+        true: ["-DINCLUDE_VIRTUAL_BACKEND"],
+        default: [],
     }),
     visibility: [":__subpackages__"],
 }
@@ -121,6 +129,23 @@ prebuilt_etc {
     installable: false,
 }
 
+// vendor.mainline.sensors.IVirtualSensors/default, served by the virtual
+// backend, and the directory where it keeps the values the user set.
+prebuilt_etc {
+    name: "sensors-mainline-virtual.xml",
+    vendor: true,
+    src: "sensors-mainline-virtual.xml",
+    sub_dir: "vintf",
+    installable: false,
+}
+
+prebuilt_etc {
+    name: "sensors-mainline-virtual.rc",
+    vendor: true,
+    src: "sensors-mainline-virtual.rc",
+    installable: false,
+}
+
 // The APEX manifest keeps the name "com.android.hardware.sensors" so that this
 // module can be installed as an alternative implementation of the default
 // sensors APEX (multi-install APEX).
@@ -153,13 +178,22 @@ apex {
             "android.hardware.sensor.relative_humidity.prebuilt.xml",
         ],
         default: [],
+    }) + select(soong_config_variable("sensors_hal_mainline", "include_virtual_backend"), {
+        true: [
+            "sensors-mainline-virtual.rc",
+            "sensors-mainline-virtual.xml",
+        ],
+        default: [],
     }),
 
     native_shared_libs: [
         "libsensors_iio",
         "libsensors_input",
         "libsensors_mock",
-    ] + select(soong_config_variable("sensors_hal_mainline", "include_custom_backends"), {
+    ] + select(soong_config_variable("sensors_hal_mainline", "include_virtual_backend"), {
+        true: ["libsensors_virtual"],
+        default: [],
+    }) + select(soong_config_variable("sensors_hal_mainline", "include_custom_backends"), {
         any @ flag_val: flag_val,
         default: [],
     }),
