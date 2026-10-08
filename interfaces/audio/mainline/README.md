@@ -365,10 +365,15 @@ The `dumpsys` output starts with the effective properties, the cards, every
 endpoint with its capabilities, the UCM devices currently enabled and which
 stream owns which exclusive PCM device.
 
-## Control interface
+## Settings app and control interface
 
-`vendor.mainline.audio.IControl/default` (`aidl/`) serves the settings app
-that ships in the APEX; the framework does not use it. It reports the cards,
+The APEX carries a settings app, `MainlineAudioSettings`, shown as
+**Settings › Sound › Audio › Audio devices**; see
+[`settings/README.md`](settings/README.md). It needs the device's SELinux
+policy to give it a domain (vendor `seapp_contexts`).
+
+`vendor.mainline.audio.IControl/default` (`aidl/`) serves the settings app;
+the framework does not use it. It reports the cards,
 their UCM verb and enabled devices, and every endpoint with its path,
 capabilities, jack state, stream usage and, for HDMI heads, the sink's
 passthrough formats, plus a plain text report (`dumpsys` output and

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="vendor.mainline.audio.settings">
+
+    <!-- Preferred output and input devices, privileged: see the allowlist. -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_ROUTING" />
+    <!-- AudioService does not keep preferred devices across reboots. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@drawable/ic_audio_devices"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MainlineAudio">
+
+        <activity
+            android:name=".AudioSettingsActivity"
+            android:exported="true"
+            android:label="@string/settings_title">
+
+            <intent-filter>
+                <action android:name="com.android.settings.action.IA_SETTINGS" />
+            </intent-filter>
+
+            <meta-data
+                android:name="com.android.settings.category"
+                android:value="com.android.settings.category.ia.sound" />
+            <!-- Inside Sound › Audio, after Spatial audio (-107). -->
+            <meta-data
+                android:name="com.android.settings.group_key"
+                android:value="audio_category" />
+            <meta-data
+                android:name="com.android.settings.order"
+                android:value="-106" />
+            <meta-data
+                android:name="com.android.settings.icon"
+                android:resource="@drawable/ic_audio_devices" />
+            <meta-data
+                android:name="com.android.settings.icon_tintable"
+                android:value="true" />
+            <meta-data
+                android:name="com.android.settings.profile"
+                android:value="primary_profile_only" />
+            <meta-data
+                android:name="com.android.settings.summary_uri"
+                android:value="content://vendor.mainline.audio.settings.summary/getDynamicSummary" />
+        </activity>
+
+        <provider
+            android:name=".AudioSummaryProvider"
+            android:authorities="vendor.mainline.audio.settings.summary"
+            android:exported="true" />
+
+        <receiver
+            android:name=".BootReceiver"
+            android:directBootAware="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

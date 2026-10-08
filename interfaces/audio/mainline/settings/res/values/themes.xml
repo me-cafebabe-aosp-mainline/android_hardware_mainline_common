@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- The toolbar comes from activity_settings.xml, which also handles the
+         status bar inset that edge-to-edge leaves to the app. -->
+    <style name="Theme.MainlineAudio" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
+</resources>
