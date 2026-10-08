@@ -140,6 +140,55 @@
     <string name="confirm_keep">Keep</string>
     <string name="confirm_revert">Revert</string>
 
+    <!-- Speakers -->
+    <string name="speakers_title">Speakers</string>
+    <string name="speakers_summary">Speaker layout, subwoofer, levels and delays of each output</string>
+    <plurals name="speakers_channels">
+        <item quantity="one">Up to <xliff:g id="count">%d</xliff:g> channel</item>
+        <item quantity="other">Up to <xliff:g id="count">%d</xliff:g> channels</item>
+    </plurals>
+    <string name="speakers_footer">Outputs that share a jack or connector share their setup.</string>
+    <string name="output_setup">Setup</string>
+    <string name="output_layout">Speaker layout</string>
+    <string name="layout_auto">Automatic (as the app plays it)</string>
+    <string name="layout_stereo">Stereo</string>
+    <string name="layout_quad">Quadraphonic</string>
+    <string name="layout_5_1">5.1 surround</string>
+    <string name="layout_7_1">7.1 surround</string>
+    <string name="output_fill">Speaker fill</string>
+    <string name="output_fill_summary">Play stereo on every speaker, not just the front ones</string>
+    <string name="output_swap">Swap left and right</string>
+    <string name="output_mono">Mono</string>
+    <string name="output_mono_summary">Left and right speakers play the same</string>
+    <string name="output_bass">Bass management</string>
+    <string name="output_subwoofer">Subwoofer</string>
+    <string name="output_subwoofer_summary">A subwoofer is connected; without one, its channel goes to the front speakers</string>
+    <string name="output_small">Small speakers</string>
+    <string name="output_small_summary">Send the bass of the other speakers to the subwoofer</string>
+    <string name="output_crossover">Crossover</string>
+    <!-- e.g. "80 Hz" -->
+    <string name="output_crossover_value"><xliff:g id="hz">%1$d</xliff:g> Hz</string>
+    <string name="speaker_front_left">Front left</string>
+    <string name="speaker_front_right">Front right</string>
+    <string name="speaker_rear_left">Rear left</string>
+    <string name="speaker_rear_right">Rear right</string>
+    <string name="speaker_center">Center</string>
+    <string name="speaker_subwoofer">Subwoofer</string>
+    <string name="speaker_side_left">Side left</string>
+    <string name="speaker_side_right">Side right</string>
+    <string name="output_level">Level</string>
+    <!-- e.g. "-3 dB" -->
+    <string name="output_level_value"><xliff:g id="db">%1$d</xliff:g> dB</string>
+    <string name="output_delay">Delay</string>
+    <!-- e.g. "1.5 ms" -->
+    <string name="output_delay_value"><xliff:g id="ms">%1$s</xliff:g> ms</string>
+    <string name="output_test">Test</string>
+    <string name="output_test_summary">Plays noise on this speaker for two seconds</string>
+    <string name="output_reset">Reset this output</string>
+    <string name="output_reset_summary">Plays everything as the apps send it again</string>
+    <string name="output_footer">Changes apply right away. Delay the speakers closest to you by about 3 ms per metre they are closer than the farthest one.</string>
+    <string name="output_auto_footer">Pick a speaker layout to set up each speaker.</string>
+
     <!-- Device names for devices the HAL does not describe -->
     <string name="device_speaker">Speaker</string>
     <string name="device_earpiece">Earpiece</string>

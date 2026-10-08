@@ -15,6 +15,8 @@
 - `AudioDevices.kt`: device identity (`DeviceId`) and names (`DeviceLabels`).
 - `DiagnosticsFragment.kt`, `DiagnosticsViewModel.kt`, `StatusText.kt`:
   Hardware › Sound cards, the report.
+- `SpeakersFragment.kt`, `OutputFragment.kt`, `OutputViewModel.kt`:
+  Hardware › Speakers; `Speakers` mirrors the HAL's speaker order per layout.
 - `MixerFragment.kt`, `MixerViewModel.kt`: Hardware › Mixer.
 - `HalSettingsFragment.kt`, `HalSettingsViewModel.kt`,
   `ConfirmSettingsDialogFragment.kt`: Hardware › Advanced, the trial dialog.

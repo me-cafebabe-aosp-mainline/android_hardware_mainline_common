@@ -85,6 +85,14 @@ class AudioSettingsFragment : SettingsFragment() {
         )
         category.addPreference(
             Preference(context).apply {
+                key = "$KEY_HARDWARE/speakers"
+                setTitle(R.string.speakers_title)
+                setSummary(R.string.speakers_summary)
+                fragment = SpeakersFragment::class.java.name
+            }
+        )
+        category.addPreference(
+            Preference(context).apply {
                 key = "$KEY_HARDWARE/mixer"
                 setTitle(R.string.mixer_title)
                 setSummary(R.string.mixer_summary)

@@ -21,6 +21,12 @@ app of the mainline audio HAL. It ships inside the HAL's APEX and appears in
   report** hand out the HAL's dumpsys text plus `/proc/asound` for bug
   reports. Shown only on devices that declare `IControl`.
 
+- **Hardware › Speakers:** per output the speaker layout (stereo, quad, 5.1,
+  7.1 or automatic), speaker fill, swap left / right, mono, subwoofer and
+  small speakers with a crossover, and per speaker a level, a delay and a
+  test (pink noise for two seconds; the app plays silence to the output
+  meanwhile, since the HAL only replaces what streams play). Changes apply
+  right away and are stored by the HAL.
 - **Hardware › Mixer:** every writable mixer control of the HAL's cards
   (switches, levels, enumerations such as HDA's *Auto-Mute Mode* or
   *Independent HP*). A value the user sets is stored by the HAL and applied
