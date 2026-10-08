@@ -11,6 +11,7 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 
 /** Supplies the default output and input as the summary of the Settings tile. */
 class RoutingSummaryProvider : ContentProvider() {
@@ -19,20 +20,32 @@ class RoutingSummaryProvider : ContentProvider() {
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         if (method != METHOD_GET_DYNAMIC_SUMMARY) return null
         val context = context ?: return null
+        // Settings does not catch what this throws, e.g. a SecurityException
+        // while MODIFY_AUDIO_ROUTING is not granted: no summary rather than a
+        // crash of the Sound page.
+        val summary =
+            try {
+                summarize(context)
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "no summary", e)
+                return null
+            }
+        return Bundle().apply { putString(META_DATA_PREFERENCE_SUMMARY, summary) }
+    }
+
+    private fun summarize(context: Context): String {
         val labels = DeviceLabels(context)
         val routing = AudioRouting(context)
         val output = describe(context, routing.outputChoice(), labels)
-        val summary =
-            if (routing.inputs().isEmpty()) {
-                output
-            } else {
-                context.getString(
-                    R.string.summary_format,
-                    output,
-                    describe(context, routing.inputChoice(), labels),
-                )
-            }
-        return Bundle().apply { putString(META_DATA_PREFERENCE_SUMMARY, summary) }
+        return if (routing.inputs().isEmpty()) {
+            output
+        } else {
+            context.getString(
+                R.string.summary_format,
+                output,
+                describe(context, routing.inputChoice(), labels),
+            )
+        }
     }
 
     override fun query(
@@ -63,6 +76,8 @@ class RoutingSummaryProvider : ContentProvider() {
         }
 
     companion object {
+        private const val TAG = "MainlineAudioRouting"
+
         // Keys of the Settings tile protocol, see SettingsLib TileUtils.
         private const val METHOD_GET_DYNAMIC_SUMMARY = "getDynamicSummary"
         private const val META_DATA_PREFERENCE_SUMMARY = "com.android.settings.summary"
