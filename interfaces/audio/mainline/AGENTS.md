@@ -32,7 +32,7 @@ ModuleMainline.*           IModule: subclass of the example HAL's Module. Create
 Properties.*               vendor.audio.mainline.* -> struct Properties.
 aidl/                      vendor.mainline.audio: the control interface (IControl)
                            between the HAL and its settings app, and its framework
-                           compatibility matrix entry. Not frozen yet.
+                           compatibility matrix entry. Frozen at version 1.
 control/
   ControlService.*         IControl: reads the module's state for the settings app,
                            adjusts the mixer.
@@ -360,10 +360,13 @@ We link `libaudioserviceexampleimpl` statically and derive from:
 * `MixerSettings` re-applies stored values from
   `RoutingController::SetDeviceEnabledListener()`, i.e. on a Binder thread
   with the routing lock held: it must not call back into routing or streams.
-* The interface is unfrozen, so methods and fields can still change freely.
-  Once it is frozen, every change needs a new version (`aidl_api/`), and the
-  VINTF fragment, the compatibility matrix and the `-V<n>-` library names
-  have to follow.
+* The interface is frozen at version 1 (`aidl/aidl_api/`). A change needs a
+  new version: unfreeze, edit, `m vendor.mainline.audio-update-api`, and in
+  the same change the VINTF fragment
+  (`android.hardware.audio.service-aidl.mainline.xml`), the compatibility
+  matrix (`aidl/compatibility_matrix.mainline.audio.xml`, a `1-2` range) and
+  the `-V<n>-ndk` / `-V<n>-java` library names follow. See
+  `docs/HAL_APPS.md`.
 
 ## Framework Interaction (AOSP source)
 

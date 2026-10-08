@@ -7,9 +7,9 @@
 // (backends/virtual) and the settings app shipped in the same APEX. See
 // IVirtualSensors.aidl.
 //
-// Not frozen yet: freeze it (m vendor.mainline.sensors-freeze-api) before the
-// first release that other partitions depend on, and bump the version for
-// every change afterwards.
+// Frozen at version 1 (aidl_api/). To change it, see docs/HAL_APPS.md: set
+// `frozen: false`, edit, run m vendor.mainline.sensors-update-api, and freeze
+// the new version (m vendor.mainline.sensors-freeze-api) before it ships.
 aidl_interface {
     name: "vendor.mainline.sensors",
     owner: "mainline",
@@ -41,7 +41,6 @@ aidl_interface {
             imports: [],
         },
     ],
-
 }
 
 // The framework compatibility matrix entry for IVirtualSensors. The interface

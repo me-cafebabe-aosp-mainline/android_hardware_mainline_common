@@ -421,7 +421,7 @@ path (`EndpointStatus.key`), so they follow the card when its index changes.
 The device's SELinux policy has to label `/data/vendor/mainline_audio`
 for the HAL to write it; without it nothing is kept across restarts.
 
-The interface is not frozen yet. The product has to install its framework
+The interface is frozen at version 1. The product has to install its framework
 compatibility matrix entry, `framework_compatibility_matrix.mainline.audio.xml`
 (on `/product`), so that VINTF checks know the HAL; the device's SELinux
 policy decides who may use the service.

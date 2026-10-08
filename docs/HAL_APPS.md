@@ -88,11 +88,20 @@ domain in the device's vendor policy (`device/mainline/common/sepolicy/vendor`):
   an app process runs the system's libbinder: every call fails with
   "Cannot do a user transaction on a vendor stability binder ... in a
   system stability context" (`frameworks/native/libs/binder/BpBinder.cpp`).
-- Keep it unfrozen (`frozen: false`, with an `owner`) while it changes. The
-  build still checks it against a dump in `aidl_api/<name>/current/`; ask
-  the maintainer to run `m <name>-update-api` after every change of the
-  `.aidl` files (`docs/WORKFLOW.md`: agents do not build). Freeze it before
-  anything outside the APEX depends on it.
+- Versioning (`owner` set, `aidl_api/<name>/` holds the dumps; agents do
+  not build, so the maintainer runs the `m` commands, `docs/WORKFLOW.md`):
+  - A new interface starts unfrozen (`frozen: false`). The build checks it
+    against `aidl_api/<name>/current/`: run `m <name>-update-api` after
+    every change of the `.aidl` files.
+  - Freeze it (`m <name>-freeze-api`) before it ships. `vendor.mainline.audio`
+    and `vendor.mainline.sensors` are frozen at version 1.
+  - To change a frozen interface: set `frozen: false`, edit, run
+    `m <name>-update-api`. That makes a next version (V2) the latest, so in
+    the same change bump the HAL's VINTF fragment to that version, widen
+    the compatibility matrix entry to the range (`1-2`), and switch the
+    `-V<n>-ndk` / `-V<n>-java` library names. Only add to a frozen version's
+    successor (new methods, new fields at the end); never remove or change
+    what an earlier version has. Freeze again before it ships.
 - Declare the instance in the HAL's VINTF fragment inside the APEX, and add
   an optional entry to a framework compatibility matrix module installed on
   the product partition (`vintf_compatibility_matrix`, `product_specific`),
