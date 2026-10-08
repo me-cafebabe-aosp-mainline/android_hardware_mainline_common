@@ -9,3 +9,11 @@ service vendor.audio-hal-aidl-mainline /apex/com.android.hardware.audio/bin/hw/a
     ioprio rt 4
     task_profiles ProcessCapacityHigh HighPerformance
     onrestart restart audioserver
+
+# State the settings app sets through vendor.mainline.audio.IControl (mixer
+# values, ...). init reads this file once /data is mounted (post-fs-data), so
+# early-boot creates the directory before the hal class starts. apexd only sets
+# apex.<name>.ready on a rebootless update, never at boot. Without the
+# directory nothing is kept across restarts.
+on early-boot
+    mkdir /data/vendor/mainline_audio 0770 audioserver audio

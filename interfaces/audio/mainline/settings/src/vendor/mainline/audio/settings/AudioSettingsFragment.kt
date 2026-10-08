@@ -83,6 +83,14 @@ class AudioSettingsFragment : SettingsFragment() {
                 fragment = DiagnosticsFragment::class.java.name
             }
         )
+        category.addPreference(
+            Preference(context).apply {
+                key = "$KEY_HARDWARE/mixer"
+                setTitle(R.string.mixer_title)
+                setSummary(R.string.mixer_summary)
+                fragment = MixerFragment::class.java.name
+            }
+        )
     }
 
     private fun PreferenceScreen.addSelection(

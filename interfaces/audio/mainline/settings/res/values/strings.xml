@@ -74,6 +74,19 @@
     <string name="rates_khz"><xliff:g id="rates">%1$s</xliff:g> kHz</string>
     <string name="none">none</string>
 
+    <!-- Mixer -->
+    <string name="mixer_title">Mixer</string>
+    <string name="mixer_summary">Every adjustable control of the sound cards: levels, boosts, jack behavior</string>
+    <string name="mixer_header">Changes apply right away and are kept: the HAL sets them again at every start. Some controls mute outputs or loop inputs back into outputs.</string>
+    <string name="mixer_no_controls">No adjustable controls</string>
+    <string name="mixer_forget">Forget my changes</string>
+    <string name="mixer_forget_summary">The card goes back to its defaults at the next restart</string>
+    <!-- e.g. "-64.5 to 0 dB" -->
+    <string name="mixer_db_range"><xliff:g id="min">%1$s</xliff:g> to <xliff:g id="max">%2$s</xliff:g> dB</string>
+    <!-- e.g. "Channels: 50, 60" -->
+    <string name="mixer_channels">Channels: <xliff:g id="values">%1$s</xliff:g></string>
+    <string name="mixer_stored">Kept</string>
+
     <!-- Device names for devices the HAL does not describe -->
     <string name="device_speaker">Speaker</string>
     <string name="device_earpiece">Earpiece</string>

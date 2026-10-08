@@ -15,6 +15,7 @@
 - `AudioDevices.kt`: device identity (`DeviceId`) and names (`DeviceLabels`).
 - `DiagnosticsFragment.kt`, `DiagnosticsViewModel.kt`, `StatusText.kt`:
   Hardware › Sound cards, the report.
+- `MixerFragment.kt`, `MixerViewModel.kt`: Hardware › Mixer.
 - `HalControl.kt`: the only code that talks to `IControl`.
 - `AudioSummaryProvider.kt`: the Settings tile summary.
 - `BootReceiver.kt`: restores the routing preferences at boot.

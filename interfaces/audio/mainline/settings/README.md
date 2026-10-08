@@ -21,6 +21,13 @@ app of the mainline audio HAL. It ships inside the HAL's APEX and appears in
   report** hand out the HAL's dumpsys text plus `/proc/asound` for bug
   reports. Shown only on devices that declare `IControl`.
 
+- **Hardware › Mixer:** every writable mixer control of the HAL's cards
+  (switches, levels, enumerations such as HDA's *Auto-Mute Mode* or
+  *Independent HP*). A value the user sets is stored by the HAL and applied
+  again at every start and whenever UCM switches devices on the card, since
+  UCM sequences set the controls they know. *Forget my changes* drops the
+  stored values of a card.
+
 Devices of the mainline HAL are named after their device port (e.g.
 "PCH: HDMI 1"), from `vendor.mainline.audio.IControl`; others by their
 product name or type.

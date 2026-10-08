@@ -6,6 +6,7 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -51,6 +52,10 @@ class ModuleMainline final : public Module {
     passthrough::SinkCapabilities ResolveSinkCapabilities(passthrough::HdmiControl& control) const;
     // The HAL specific part of dump().
     std::string DumpState() const;
+    // See RoutingController::SetDeviceEnabledListener().
+    void SetDeviceEnabledListener(std::function<void(int card)> listener) {
+        routing_->SetDeviceEnabledListener(std::move(listener));
+    }
 
   private:
     // IModule

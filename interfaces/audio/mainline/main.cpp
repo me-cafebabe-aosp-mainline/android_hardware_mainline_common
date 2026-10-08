@@ -28,6 +28,7 @@ using aidl::android::hardware::audio::core::mainline::MainlineConfig;
 using aidl::android::hardware::audio::core::mainline::ModuleMainline;
 using aidl::android::hardware::audio::core::mainline::Properties;
 using aidl::android::hardware::audio::core::mainline::control::ControlService;
+using aidl::android::hardware::audio::core::mainline::control::MixerSettings;
 
 namespace {
 
@@ -101,11 +102,16 @@ int main() {
     // the sound cards must already exist when the HAL starts.
     std::vector<ChildInterface<Module>> modules;
     const std::shared_ptr<ModuleMainline> module = ModuleMainline::Create(properties);
+    // Mixer values the user set in the settings app: once now, after the UCM
+    // boot sequences ran, and again whenever UCM enables a device.
+    auto mixer = std::make_shared<MixerSettings>(module->inventory().cards());
+    mixer->ApplyAll();
+    module->SetDeviceEnabledListener([mixer](int card) { mixer->Apply(card); });
     RegisterModule(module, "default", &modules);
 
     // vendor.mainline.audio.IControl/default: the settings app's view of the
     // module. The HAL works without it, so a failure is only logged.
-    auto control = ndk::SharedRefBase::make<ControlService>(module);
+    auto control = ndk::SharedRefBase::make<ControlService>(module, mixer);
     const std::string control_fqn = std::string(ControlService::descriptor) + "/default";
     if (const binder_status_t status =
                 AServiceManager_addService(control->asBinder().get(), control_fqn.c_str());

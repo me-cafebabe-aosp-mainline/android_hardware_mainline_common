@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -24,6 +25,11 @@ class RoutingController {
   public:
     explicit RoutingController(std::shared_ptr<DeviceInventory> inventory);
 
+    // Called with the card index after a UCM device of the card was enabled,
+    // for state that UCM sequences overwrite. Set it before the first stream
+    // opens; it runs on the caller's thread with the routing lock held.
+    void SetDeviceEnabledListener(std::function<void(int card)> listener);
+
     void Acquire(const Endpoint& endpoint);
     void Release(const Endpoint& endpoint);
     // Streams holding the endpoint's UCM device, 0 for endpoints without one.
@@ -37,6 +43,7 @@ class RoutingController {
     const std::shared_ptr<DeviceInventory> inventory_;
     mutable std::mutex lock_;
     std::map<std::string, int> refcounts_;
+    std::function<void(int card)> device_enabled_listener_;
 };
 
 }  // namespace aidl::android::hardware::audio::core::mainline::routing

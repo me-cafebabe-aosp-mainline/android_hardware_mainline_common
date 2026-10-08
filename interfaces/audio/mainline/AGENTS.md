@@ -34,7 +34,11 @@ aidl/                      vendor.mainline.audio: the control interface (IContro
                            between the HAL and its settings app, and its framework
                            compatibility matrix entry. Not frozen yet.
 control/
-  ControlService.*         IControl: reads the module's state for the settings app.
+  ControlService.*         IControl: reads the module's state for the settings app,
+                           adjusts the mixer.
+  MixerSettings.*          Mixer values set through IControl: stored, re-applied at
+                           start and after every UCM device enable.
+  StateStore.*             Key / value files in /data/vendor/mainline_audio.
 settings/                  The settings app (Kotlin) in the APEX; own AGENTS.md.
 alsa/                      Thin C++ wrappers over alsa-lib. No Android types except
                            in AlsaFormat (AIDL <-> ALSA formats/channels/profiles).
@@ -43,6 +47,8 @@ alsa/                      Thin C++ wrappers over alsa-lib. No Android types exc
                            IEC 61937), read/write with xrun recovery, position,
                            latency, capability probing, PCM identity.
   AlsaMixer.*              "alsactl init"-like mixer initialisation (no-UCM cards, USB).
+  AlsaControls.*           Generic snd_ctl access: list / write the user adjustable
+                           MIXER controls (control interface's mixer).
   AlsaError.*              RAII handle types, error strings, alsa-lib error handler.
 ucm/                       alsa-lib Use Case Manager.
   UcmManager.*             snd_use_case_mgr_t wrapper: boot sequences, verb, devices
@@ -316,7 +322,14 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   `ModuleMainline`; keep the module free of control specific logic.
 * `Endpoint::Key()` names a path for state the control interface keeps
   across restarts. Never key such state by card index or port id, both
-  change between boots.
+  change between boots; mixer values are keyed by card id, control name and
+  control index for the same reason.
+* Persistent state lives in `/data/vendor/mainline_audio` (`StateStore`),
+  created by the APEX's rc file. Its absence (no SELinux label, no /data)
+  must only cost persistence, never audio.
+* `MixerSettings` re-applies stored values from
+  `RoutingController::SetDeviceEnabledListener()`, i.e. on a Binder thread
+  with the routing lock held: it must not call back into routing or streams.
 * The interface is unfrozen, so methods and fields can still change freely.
   Once it is frozen, every change needs a new version (`aidl_api/`), and the
   VINTF fragment, the compatibility matrix and the `-V<n>-` library names

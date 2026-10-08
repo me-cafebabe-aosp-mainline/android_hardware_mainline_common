@@ -16,6 +16,11 @@ namespace aidl::android::hardware::audio::core::mainline::routing {
 RoutingController::RoutingController(std::shared_ptr<DeviceInventory> inventory)
     : inventory_(std::move(inventory)) {}
 
+void RoutingController::SetDeviceEnabledListener(std::function<void(int card)> listener) {
+    std::lock_guard guard(lock_);
+    device_enabled_listener_ = std::move(listener);
+}
+
 std::string RoutingController::Key(const Endpoint& endpoint) {
     return std::to_string(endpoint.card) + "/" + endpoint.ucm_device;
 }
@@ -38,6 +43,7 @@ void RoutingController::Acquire(const Endpoint& endpoint) {
     } else {
         LOG(INFO) << __func__ << ": enabled UCM device \"" << endpoint.ucm_device << "\" on card "
                   << endpoint.card;
+        if (device_enabled_listener_) device_enabled_listener_(endpoint.card);
     }
 }
 

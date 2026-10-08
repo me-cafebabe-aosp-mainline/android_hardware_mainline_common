@@ -373,11 +373,18 @@ The APEX carries a settings app, `MainlineAudioSettings`, shown as
 policy to give it a domain (vendor `seapp_contexts`).
 
 `vendor.mainline.audio.IControl/default` (`aidl/`) serves the settings app;
-the framework does not use it. It reports the cards,
+the framework does not use it. Besides reading the HAL's state it adjusts
+ALSA mixer controls; values set that way are stored in
+`/data/vendor/mainline_audio` and applied again at every start and whenever
+UCM enables a device on the card (UCM sequences set the controls they know
+about, which would otherwise undo the user's choice). It reports the cards,
 their UCM verb and enabled devices, and every endpoint with its path,
 capabilities, jack state, stream usage and, for HDMI heads, the sink's
 passthrough formats, plus a plain text report (`dumpsys` output and
 `/proc/asound`).
+
+The device's SELinux policy has to label `/data/vendor/mainline_audio`
+for the HAL to write it; without it nothing is kept across restarts.
 
 The interface is not frozen yet. The product has to install its framework
 compatibility matrix entry, `framework_compatibility_matrix.mainline.audio.xml`

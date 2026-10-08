@@ -7,12 +7,15 @@
 
 #include "control/ControlService.h"
 
+#include <algorithm>
 #include <utility>
 
 #include <android-base/file.h>
 #include <android-base/logging.h>
 
 #include "alsa/AlsaCard.h"
+#include "alsa/AlsaControls.h"
+#include "alsa/AlsaError.h"
 #include "passthrough/Format.h"
 #include "passthrough/SinkCapabilities.h"
 #include "ucm/UcmManager.h"
@@ -23,6 +26,7 @@ using ::aidl::android::media::audio::common::AudioDeviceAddress;
 using ::aidl::vendor::mainline::audio::CardStatus;
 using ::aidl::vendor::mainline::audio::EndpointStatus;
 using ::aidl::vendor::mainline::audio::HdmiSinkStatus;
+using ::aidl::vendor::mainline::audio::MixerControl;
 using ::aidl::vendor::mainline::audio::SinkFormat;
 using ::aidl::vendor::mainline::audio::Status;
 
@@ -60,8 +64,15 @@ CardStatus MakeCardStatus(const alsa::CardInfo& card, const routing::DeviceInven
 
 }  // namespace
 
-ControlService::ControlService(std::shared_ptr<ModuleMainline> module)
-    : module_(std::move(module)) {}
+ControlService::ControlService(std::shared_ptr<ModuleMainline> module,
+                               std::shared_ptr<MixerSettings> mixer)
+    : module_(std::move(module)), mixer_(std::move(mixer)) {}
+
+bool ControlService::UsesCard(int32_t card) const {
+    const auto& cards = module_->inventory().cards();
+    return std::any_of(cards.begin(), cards.end(),
+                       [card](const alsa::CardInfo& info) { return info.index == card; });
+}
 
 ndk::ScopedAStatus ControlService::getStatus(Status* _aidl_return) {
     const routing::DeviceInventory& inventory = module_->inventory();
@@ -150,6 +161,63 @@ ndk::ScopedAStatus ControlService::getReport(std::string* _aidl_return) {
         report += std::string("\n") + path + ":\n" + contents;
     }
     *_aidl_return = std::move(report);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::getMixerControls(int32_t card,
+                                                    std::vector<MixerControl>* _aidl_return) {
+    if (!UsesCard(card)) return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    std::vector<MixerControl> controls;
+    for (const alsa::ControlInfo& info : alsa::ListControls(card)) {
+        MixerControl control{.numid = static_cast<int32_t>(info.numid),
+                             .name = info.name,
+                             .index = static_cast<int32_t>(info.index),
+                             .min = info.min,
+                             .max = info.max,
+                             .step = info.step,
+                             .items = info.items,
+                             .stored = mixer_->IsStored(card, info.name, info.index)};
+        switch (info.type) {
+            case alsa::ControlInfo::Type::kBoolean:
+                control.type = MixerControl::TYPE_BOOLEAN;
+                break;
+            case alsa::ControlInfo::Type::kInteger:
+                control.type = MixerControl::TYPE_INTEGER;
+                break;
+            case alsa::ControlInfo::Type::kEnumerated:
+                control.type = MixerControl::TYPE_ENUMERATED;
+                break;
+        }
+        control.values.assign(info.values.begin(), info.values.end());
+        if (info.db_range.has_value()) {
+            control.hasDbRange = true;
+            control.minDb = static_cast<int32_t>(info.db_range->first);
+            control.maxDb = static_cast<int32_t>(info.db_range->second);
+        }
+        controls.push_back(std::move(control));
+    }
+    *_aidl_return = std::move(controls);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::setMixerControl(int32_t card, int32_t numid,
+                                                   const std::vector<int64_t>& values) {
+    if (!UsesCard(card) || numid <= 0 || values.empty()) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    const std::vector<long> alsa_values(values.begin(), values.end());
+    if (const int err = mixer_->Set(card, static_cast<unsigned int>(numid), alsa_values); err < 0) {
+        LOG(WARNING) << __func__ << ": card " << card << " control " << numid << ": "
+                     << alsa::ErrorString(err);
+        return err == -EINVAL ? ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT)
+                              : ndk::ScopedAStatus::fromServiceSpecificError(-err);
+    }
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::resetMixerControls(int32_t card) {
+    if (!UsesCard(card)) return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    mixer_->Forget(card);
     return ndk::ScopedAStatus::ok();
 }
 
