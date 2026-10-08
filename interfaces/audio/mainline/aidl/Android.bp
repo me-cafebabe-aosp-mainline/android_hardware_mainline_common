@@ -15,7 +15,7 @@ aidl_interface {
     vendor_available: true,
     srcs: ["vendor/mainline/audio/*.aidl"],
     stability: "vintf",
-    frozen: false,
+    frozen: true,
     backend: {
         cpp: {
             enabled: false,
@@ -34,6 +34,13 @@ aidl_interface {
             ],
         },
     },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
 }
 
 // The framework compatibility matrix entry for IControl. The interface is
