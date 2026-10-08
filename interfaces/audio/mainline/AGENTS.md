@@ -38,6 +38,8 @@ control/
                            adjusts the mixer.
   MixerSettings.*          Mixer values set through IControl: stored, re-applied at
                            start and after every UCM device enable.
+  SettingsStore.*          Properties overrides set through IControl: confirmed
+                           set, trial with timeout and start limit, restart.
   StateStore.*             Key / value files in /data/vendor/mainline_audio.
 settings/                  The settings app (Kotlin) in the APEX; own AGENTS.md.
 alsa/                      Thin C++ wrappers over alsa-lib. No Android types except
@@ -327,6 +329,12 @@ We link `libaudioserviceexampleimpl` statically and derive from:
 * Persistent state lives in `/data/vendor/mainline_audio` (`StateStore`),
   created by the APEX's rc file. Its absence (no SELinux label, no /data)
   must only cost persistence, never audio.
+* Settings change ports and profiles, so they never apply to a running HAL:
+  `SettingsStore` restarts it. New settings are a trial that reverts on its
+  own (timeout, repeated failed starts); keep that guarantee for anything
+  that can make a device silent. `SettingsStore` must be created before
+  `Properties::Load()`, and nothing may run before it that a broken setting
+  could crash.
 * `MixerSettings` re-applies stored values from
   `RoutingController::SetDeviceEnabledListener()`, i.e. on a Binder thread
   with the routing lock held: it must not call back into routing or streams.
@@ -359,8 +367,13 @@ When you need to check how the framework talks to this HAL, look at:
 ## When adding a property
 
 1. Add the field to `struct Properties` with a comment and default.
-2. Read it in `Properties::Load()` and print it in `ToString()`.
-3. Document it in the README table.
+2. Read it in `Properties::Load()` (through `Source`, so that a stored
+   setting overrides it) and print it in `ToString()`.
+3. Add its `Spec` to `GlobalSpecs()` (or `CardSpecs()`) and its value to
+   `Properties::Values()`: that is what the settings app lists and what
+   `IControl.applySettings()` accepts. The spec's range must be the one
+   `Load()` clamps to.
+4. Document it in the README table.
 
 ## Quick sanity checks (on a device)
 

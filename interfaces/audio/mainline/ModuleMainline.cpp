@@ -58,12 +58,11 @@ bool IsHdmiDevicePort(const AudioPort& port) {
 // call from any thread: the inventory does not change and HbrFailures is
 // thread safe.
 passthrough::HdmiControlFactory MakeHdmiControlFactory(
-        std::shared_ptr<routing::DeviceInventory> inventory,
+        const Properties& properties, std::shared_ptr<routing::DeviceInventory> inventory,
         std::shared_ptr<passthrough::HbrFailures> hbr_failures) {
     std::map<int, std::optional<bool>> hbr_overrides;
     for (const alsa::CardInfo& card : inventory->cards()) {
-        hbr_overrides[card.index] =
-                Properties::LoadCardProperties(card.id, card.index, card.name).hbr;
+        hbr_overrides[card.index] = properties.ForCard(card.id, card.index, card.name).hbr;
     }
     return [inventory = std::move(inventory), hbr_failures = std::move(hbr_failures),
             hbr_overrides = std::move(hbr_overrides)](
@@ -117,7 +116,7 @@ ModuleMainline::ModuleMainline(std::unique_ptr<Configuration>&& config,
       mic_muted_(std::make_shared<std::atomic<bool>>(false)),
       fast_output_port_id_(FindFastOutputPort()),
       hbr_failures_(std::make_shared<passthrough::HbrFailures>()),
-      hdmi_control_factory_(MakeHdmiControlFactory(inventory_, hbr_failures_)),
+      hdmi_control_factory_(MakeHdmiControlFactory(properties_, inventory_, hbr_failures_)),
       forced_passthrough_formats_(ParseFormatList(properties.hdmi_passthrough_formats)),
       passthrough_port_id_(FindMixPort(routing::kPassthroughOutputMixPort)) {
     LOG(INFO) << __func__ << ": module ready";

@@ -91,6 +91,14 @@ class AudioSettingsFragment : SettingsFragment() {
                 fragment = MixerFragment::class.java.name
             }
         )
+        category.addPreference(
+            Preference(context).apply {
+                key = "$KEY_HARDWARE/settings"
+                setTitle(R.string.settings_page_title)
+                setSummary(R.string.settings_page_summary)
+                fragment = HalSettingsFragment::class.java.name
+            }
+        )
     }
 
     private fun PreferenceScreen.addSelection(

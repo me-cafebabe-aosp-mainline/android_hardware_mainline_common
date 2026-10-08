@@ -6,7 +6,10 @@
 package vendor.mainline.audio;
 
 import vendor.mainline.audio.MixerControl;
+import vendor.mainline.audio.Setting;
+import vendor.mainline.audio.SettingChange;
 import vendor.mainline.audio.Status;
+import vendor.mainline.audio.TrialStatus;
 
 /**
  * Control interface of the mainline audio HAL, served next to
@@ -45,4 +48,34 @@ interface IControl {
      * UCM or a restart of the HAL sets them.
      */
     void resetMixerControls(int card);
+
+    /** The global HAL settings, and the per-card ones of the cards in use. */
+    Setting[] getSettings();
+
+    /**
+     * Applies `changes` on top of the stored settings as a trial: the HAL
+     * restarts with them shortly after this returns, which also restarts
+     * audioserver. After the restart, keepSettings() confirms them; without
+     * it the HAL reverts on its own (see TrialStatus). Fails with
+     * EX_ILLEGAL_ARGUMENT for an unknown key or invalid value, and with
+     * EX_ILLEGAL_STATE while a trial runs or when nothing can be stored.
+     */
+    void applySettings(in SettingChange[] changes);
+
+    TrialStatus getTrialStatus();
+
+    /** Confirms the settings on trial. EX_ILLEGAL_STATE without a trial. */
+    void keepSettings();
+
+    /**
+     * Drops the settings on trial; the HAL restarts with the previous ones.
+     * EX_ILLEGAL_STATE without a trial.
+     */
+    void revertSettings();
+
+    /**
+     * Drops every stored setting; the HAL restarts with the device's
+     * properties. EX_ILLEGAL_STATE when that can not be stored.
+     */
+    void resetSettings();
 }

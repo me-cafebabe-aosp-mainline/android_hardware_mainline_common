@@ -65,11 +65,13 @@ class DeviceInventory {
     void CollectFromUcm(const alsa::CardInfo& card, ucm::UcmManager& ucm);
     void CollectFromPcmDevices(const alsa::CardInfo& card);
     void ProbeCapabilities();
-    void FilterCapabilities();
+    void FilterCapabilities(const Properties& properties);
     void AssignRoles();
     void AddNullEndpointsIfNeeded(bool null_mic);
     void FinalizeEndpoints();
 
+    // The settings discovery ran with, also for USB cards connected later.
+    Properties properties_;
     std::vector<alsa::CardInfo> cards_;
     int primary_card_ = -1;
     std::map<int, std::unique_ptr<ucm::UcmManager>> ucm_managers_;

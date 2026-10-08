@@ -29,6 +29,7 @@ using aidl::android::hardware::audio::core::mainline::ModuleMainline;
 using aidl::android::hardware::audio::core::mainline::Properties;
 using aidl::android::hardware::audio::core::mainline::control::ControlService;
 using aidl::android::hardware::audio::core::mainline::control::MixerSettings;
+using aidl::android::hardware::audio::core::mainline::control::SettingsStore;
 
 namespace {
 
@@ -77,10 +78,14 @@ int main() {
     // internal command cookie.
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
-    const Properties properties = Properties::Load();
+    // Settings stored through IControl override the properties; this also
+    // decides whether new ones run on trial.
+    auto settings = std::make_shared<SettingsStore>();
+    const Properties properties = Properties::Load(settings->active());
     ::android::base::SetMinimumLogSeverity(properties.verbose_logging ? ::android::base::VERBOSE
                                                                       : ::android::base::DEBUG);
     LOG(INFO) << "Mainline audio HAL starting";
+    LOG(INFO) << "properties: " << properties.ToString();
 
     ABinderProcess_setThreadPoolMaxThreadCount(kBinderThreadPoolSize);
     ABinderProcess_startThreadPool();
@@ -111,7 +116,7 @@ int main() {
 
     // vendor.mainline.audio.IControl/default: the settings app's view of the
     // module. The HAL works without it, so a failure is only logged.
-    auto control = ndk::SharedRefBase::make<ControlService>(module, mixer);
+    auto control = ndk::SharedRefBase::make<ControlService>(module, mixer, settings);
     const std::string control_fqn = std::string(ControlService::descriptor) + "/default";
     if (const binder_status_t status =
                 AServiceManager_addService(control->asBinder().get(), control_fqn.c_str());

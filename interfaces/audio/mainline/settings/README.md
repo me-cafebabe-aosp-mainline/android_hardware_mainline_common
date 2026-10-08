@@ -28,6 +28,12 @@ app of the mainline audio HAL. It ships inside the HAL's APEX and appears in
   UCM sequences set the controls they know. *Forget my changes* drops the
   stored values of a card.
 
+- **Hardware › Advanced:** the HAL's `vendor.audio.mainline.*` settings,
+  global and per card. Edits collect until **Apply**, which restarts the HAL
+  with them on trial; a dialog then asks to keep them, and the HAL reverts on
+  its own after 30 seconds or when it fails to start with them. **Reset to
+  device defaults** drops everything set here.
+
 Devices of the mainline HAL are named after their device port (e.g.
 "PCH: HDMI 1"), from `vendor.mainline.audio.IControl`; others by their
 product name or type.

@@ -16,6 +16,8 @@
 - `DiagnosticsFragment.kt`, `DiagnosticsViewModel.kt`, `StatusText.kt`:
   Hardware › Sound cards, the report.
 - `MixerFragment.kt`, `MixerViewModel.kt`: Hardware › Mixer.
+- `HalSettingsFragment.kt`, `HalSettingsViewModel.kt`,
+  `ConfirmSettingsDialogFragment.kt`: Hardware › Advanced, the trial dialog.
 - `HalControl.kt`: the only code that talks to `IControl`.
 - `AudioSummaryProvider.kt`: the Settings tile summary.
 - `BootReceiver.kt`: restores the routing preferences at boot.
@@ -33,6 +35,9 @@
 - Every Binder call to the HAL goes through `HalControl` and runs off the main
   thread. The HAL can be restarting or absent: everything must work, with
   less detail, when `HalControl` returns null.
+- HAL settings only change through `applySettings()` (a trial the HAL reverts
+  on its own) or `resetSettings()`. The confirmation dialog is not
+  cancelable, and the app never keeps a trial without the user's Keep.
 - Match devices by `DeviceId` (role, type, address), never by
   `AudioDeviceInfo.getId()`, which changes when a device reconnects.
 - The tile's `com.android.settings.summary_uri` meta-data and

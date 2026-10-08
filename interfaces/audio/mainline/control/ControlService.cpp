@@ -12,6 +12,7 @@
 
 #include <android-base/file.h>
 #include <android-base/logging.h>
+#include <android-base/strings.h>
 
 #include "alsa/AlsaCard.h"
 #include "alsa/AlsaControls.h"
@@ -27,8 +28,11 @@ using ::aidl::vendor::mainline::audio::CardStatus;
 using ::aidl::vendor::mainline::audio::EndpointStatus;
 using ::aidl::vendor::mainline::audio::HdmiSinkStatus;
 using ::aidl::vendor::mainline::audio::MixerControl;
+using ::aidl::vendor::mainline::audio::Setting;
+using ::aidl::vendor::mainline::audio::SettingChange;
 using ::aidl::vendor::mainline::audio::SinkFormat;
 using ::aidl::vendor::mainline::audio::Status;
+using ::aidl::vendor::mainline::audio::TrialStatus;
 
 namespace {
 
@@ -42,6 +46,34 @@ std::string DescribeDeviceType(const ::aidl::android::media::audio::common::Audi
 std::string AddressOf(const ::aidl::android::media::audio::common::AudioDevice& device) {
     if (device.address.getTag() != AudioDeviceAddress::Tag::id) return {};
     return device.address.get<AudioDeviceAddress::Tag::id>();
+}
+
+int32_t ToAidl(Properties::Spec::Type type) {
+    switch (type) {
+        case Properties::Spec::Type::kBool:
+            return Setting::TYPE_BOOLEAN;
+        case Properties::Spec::Type::kInt:
+            return Setting::TYPE_INTEGER;
+        case Properties::Spec::Type::kString:
+            return Setting::TYPE_STRING;
+        case Properties::Spec::Type::kList:
+            return Setting::TYPE_LIST;
+        case Properties::Spec::Type::kIntList:
+            return Setting::TYPE_INTEGER_LIST;
+    }
+    return Setting::TYPE_STRING;
+}
+
+// Checks that go beyond the spec's type.
+bool IsAcceptable(const std::string& key, const std::string& value) {
+    if (key != "hdmi.passthrough_formats") return true;
+    for (const std::string& name : ::android::base::Split(value, ",")) {
+        const std::string trimmed = ::android::base::Trim(name);
+        if (!trimmed.empty() && !passthrough::EncodedFormatFromString(trimmed).has_value()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 CardStatus MakeCardStatus(const alsa::CardInfo& card, const routing::DeviceInventory& inventory) {
@@ -65,8 +97,9 @@ CardStatus MakeCardStatus(const alsa::CardInfo& card, const routing::DeviceInven
 }  // namespace
 
 ControlService::ControlService(std::shared_ptr<ModuleMainline> module,
-                               std::shared_ptr<MixerSettings> mixer)
-    : module_(std::move(module)), mixer_(std::move(mixer)) {}
+                               std::shared_ptr<MixerSettings> mixer,
+                               std::shared_ptr<SettingsStore> settings)
+    : module_(std::move(module)), mixer_(std::move(mixer)), settings_(std::move(settings)) {}
 
 bool ControlService::UsesCard(int32_t card) const {
     const auto& cards = module_->inventory().cards();
@@ -219,6 +252,78 @@ ndk::ScopedAStatus ControlService::resetMixerControls(int32_t card) {
     if (!UsesCard(card)) return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     mixer_->Forget(card);
     return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::getSettings(std::vector<Setting>* _aidl_return) {
+    std::vector<std::string> card_ids;
+    for (const alsa::CardInfo& card : module_->inventory().cards()) card_ids.push_back(card.id);
+    const auto running = module_->properties().Values(card_ids);
+    const auto defaults = Properties::Load().Values(card_ids);
+    const SettingsStore::Settings stored = settings_->committed();
+    std::vector<Setting> settings;
+    for (const Properties::Spec& spec : Properties::Specs(card_ids)) {
+        Setting setting{.key = spec.key,
+                        .type = ToAidl(spec.type),
+                        .min = spec.min,
+                        .max = spec.max,
+                        .value = running.at(spec.key),
+                        .defaultValue = defaults.at(spec.key)};
+        if (const auto it = stored.find(spec.key); it != stored.end()) {
+            setting.stored = it->second;
+        }
+        settings.push_back(std::move(setting));
+    }
+    *_aidl_return = std::move(settings);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::applySettings(const std::vector<SettingChange>& changes) {
+    if (settings_->on_trial()) return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    SettingsStore::Settings next = settings_->committed();
+    for (const SettingChange& change : changes) {
+        const auto spec = Properties::SpecOf(change.key);
+        if (!spec.has_value()) {
+            LOG(WARNING) << __func__ << ": unknown setting \"" << change.key << "\"";
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+        if (!change.value.has_value()) {
+            next.erase(change.key);
+            continue;
+        }
+        const std::string value = ::android::base::Trim(*change.value);
+        if (!Properties::IsValid(*spec, value) || !IsAcceptable(change.key, value)) {
+            LOG(WARNING) << __func__ << ": invalid value \"" << value << "\" for " << change.key;
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+        next[change.key] = value;
+    }
+    if (!settings_->StartTrial(std::move(next))) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::getTrialStatus(TrialStatus* _aidl_return) {
+    *_aidl_return =
+            TrialStatus{.active = settings_->on_trial(),
+                        .secondsLeft = static_cast<int32_t>(settings_->TrialTimeLeft().count()),
+                        .revertedAfterFailure = settings_->reverted_after_failure()};
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::keepSettings() {
+    return settings_->Keep() ? ndk::ScopedAStatus::ok()
+                             : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+}
+
+ndk::ScopedAStatus ControlService::revertSettings() {
+    return settings_->Revert() ? ndk::ScopedAStatus::ok()
+                               : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+}
+
+ndk::ScopedAStatus ControlService::resetSettings() {
+    return settings_->Reset() ? ndk::ScopedAStatus::ok()
+                              : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
 }
 
 }  // namespace aidl::android::hardware::audio::core::mainline::control

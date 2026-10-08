@@ -59,6 +59,7 @@ cc_binary {
         "Properties.cpp",
         "control/ControlService.cpp",
         "control/MixerSettings.cpp",
+        "control/SettingsStore.cpp",
         "control/StateStore.cpp",
         "alsa/AlsaCard.cpp",
         "alsa/AlsaControls.cpp",

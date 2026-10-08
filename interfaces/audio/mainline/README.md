@@ -137,6 +137,7 @@ starts.
 | `hdmi.passthrough`        | bool   | `true`  | Expose the `hdmi passthrough` mix port: compressed audio (AC-3, E-AC-3, DTS, ...) sent to the HDMI sink as IEC 61937 for it to decode. See "HDMI passthrough". |
 | `hdmi.passthrough_formats`| string | *(ELD)* | Comma separated list of formats to offer instead of those the sink's ELD announces, for sinks or bridges with a missing or wrong ELD: `ac3`, `eac3`, `eac3-joc`, `dts`, and with `ffmpeg_passthrough` also `dtshd`, `dtshd-ma`, `truehd`. |
 | `log.verbose`             | bool   | `false` | VERBOSE instead of DEBUG logging. |
+| `settings.ignore`         | bool   | `false` | Ignore the settings stored through the settings app (see below); for a device that fails even with confirmed ones. |
 | `card.<selector>.rates`   | string | *(all)* | Comma separated list of sample rates to allow for the card matching `<selector>` (card id, index, or name with spaces replaced by underscores). Empty means all rates. |
 | `card.<selector>.hbr`     | bool   | *(driver)* | Force high bit rate passthrough (8 channels at 192 kHz of IEC 61937 data, needed for Dolby TrueHD and DTS-HD Master Audio) on or off for the HDMI outputs of the card. Unset: on for HDA (Intel, NVIDIA Tegra, ...), where a head that can not do it fails cleanly and is then left out, off for other drivers, which may send garbage instead. |
 | `card.<selector>.bits`    | string | *(all)* | Comma separated list of sample widths (`8`, `16`, `24`, `32`) to allow for the card matching `<selector>`; a width keeps every format of that width, so `24` keeps both `S24_3LE` and `S24_LE` and `32` keeps `S32_LE` and `FLOAT_LE`. Empty means all. |
@@ -382,6 +383,15 @@ their UCM verb and enabled devices, and every endpoint with its path,
 capabilities, jack state, stream usage and, for HDMI heads, the sink's
 passthrough formats, plus a plain text report (`dumpsys` output and
 `/proc/asound`).
+
+Every setting of the table above (except `settings.ignore`) can also be set
+through `IControl`, which stores it in `/data/vendor/mainline_audio`; a
+stored setting wins over the property. Since settings only apply when the HAL
+starts, new ones run as a trial: the HAL restarts with them (and audioserver
+with it) and keeps them only once the app confirms. It drops them and
+restarts with the previous ones when that does not happen within 30 seconds,
+or when it failed to come up with them twice. A device that fails even with
+confirmed settings starts without them while `settings.ignore` is set.
 
 The device's SELinux policy has to label `/data/vendor/mainline_audio`
 for the HAL to write it; without it nothing is kept across restarts.

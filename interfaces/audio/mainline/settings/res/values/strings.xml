@@ -87,6 +87,59 @@
     <string name="mixer_channels">Channels: <xliff:g id="values">%1$s</xliff:g></string>
     <string name="mixer_stored">Kept</string>
 
+    <!-- HAL settings -->
+    <string name="settings_page_title">Advanced</string>
+    <string name="settings_page_summary">HAL settings: cards, UCM, latency, HDMI passthrough</string>
+    <string name="settings_header">These are the HAL\'s vendor.audio.mainline.* settings. Changes apply when the HAL restarts, which interrupts all audio for a moment.</string>
+    <string name="settings_restarting">The audio HAL restarts…</string>
+    <string name="settings_reverted">The last changes were reverted: they were not kept in time, or the audio HAL failed to start with them.</string>
+    <string name="settings_group_cards">Sound cards</string>
+    <string name="settings_group_ucm">Use case manager</string>
+    <string name="settings_group_streams">Streams</string>
+    <string name="settings_group_hdmi">HDMI</string>
+    <string name="settings_group_mixer">Mixer defaults</string>
+    <string name="settings_group_debug">Debugging</string>
+    <string name="settings_actions">Changes</string>
+    <string name="settings_apply">Apply</string>
+    <string name="settings_apply_summary">Restarts the audio HAL; the changes are reverted unless you keep them</string>
+    <string name="settings_discard">Discard changes</string>
+    <string name="settings_reset">Reset to device defaults</string>
+    <string name="settings_reset_summary">Drops every setting made here and restarts the audio HAL</string>
+    <!-- Choice of a boolean setting, e.g. "Default (On)" -->
+    <string name="setting_default">Default (<xliff:g id="value">%1$s</xliff:g>)</string>
+    <string name="setting_on">On</string>
+    <string name="setting_off">Off</string>
+    <string name="setting_unset">Not set</string>
+    <string name="setting_edit_hint">Leave empty for the device\'s value: <xliff:g id="value">%1$s</xliff:g></string>
+    <string name="setting_edited">Not applied yet</string>
+    <string name="setting_stored">Set here</string>
+    <!-- The value the HAL runs with now, e.g. "Running with 20" -->
+    <string name="setting_running">Running with <xliff:g id="value">%1$s</xliff:g></string>
+    <string name="setting_cards">Cards to use</string>
+    <string name="setting_primary_card">Primary card</string>
+    <string name="setting_include_usb_cards">Use USB cards present at start</string>
+    <string name="setting_wait_for_cards_ms">Wait for the cards (ms)</string>
+    <string name="setting_null_mic">Silent microphone without capture hardware</string>
+    <string name="setting_ucm_enabled">Use UCM profiles</string>
+    <string name="setting_ucm_verb">UCM verb</string>
+    <string name="setting_latency_ms">Latency (ms)</string>
+    <string name="setting_fast_latency_ms">Low latency output (ms, 0 for off)</string>
+    <string name="setting_multichannel">Multichannel output</string>
+    <string name="setting_hdmi_passthrough">HDMI passthrough</string>
+    <string name="setting_hdmi_passthrough_formats">Passthrough formats instead of the ELD</string>
+    <string name="setting_mixer_init">Set up the mixer of cards without UCM</string>
+    <string name="setting_mixer_playback_percent">Playback level (%)</string>
+    <string name="setting_mixer_capture_percent">Capture level (%)</string>
+    <string name="setting_log_verbose">Verbose logging</string>
+    <string name="setting_card_rates">Sample rates (Hz)</string>
+    <string name="setting_card_bits">Sample widths (bits)</string>
+    <string name="setting_card_hbr">HDMI high bit rate</string>
+    <string name="confirm_title">Keep these audio settings?</string>
+    <string name="confirm_message">The audio HAL restarted with the new settings. Reverting in <xliff:g id="seconds">%1$d</xliff:g> s.</string>
+    <string name="confirm_message_plain">The audio HAL restarted with the new settings.</string>
+    <string name="confirm_keep">Keep</string>
+    <string name="confirm_revert">Revert</string>
+
     <!-- Device names for devices the HAL does not describe -->
     <string name="device_speaker">Speaker</string>
     <string name="device_earpiece">Earpiece</string>

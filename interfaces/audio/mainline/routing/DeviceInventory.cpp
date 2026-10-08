@@ -113,8 +113,9 @@ void AugmentCapabilities(alsa::HwCapabilities* caps) {
 // Applies the "card.<selector>.rates" / ".bits" properties of `card` to
 // `endpoint`. A restriction that would leave nothing is ignored, so that a
 // typo or a value the hardware does not have cannot make an endpoint unusable.
-void FilterEndpointCapabilities(const alsa::CardInfo& card, Endpoint* endpoint) {
-    const auto props = Properties::LoadCardProperties(card.id, card.index, card.name);
+void FilterEndpointCapabilities(const Properties& properties, const alsa::CardInfo& card,
+                                Endpoint* endpoint) {
+    const auto props = properties.ForCard(card.id, card.index, card.name);
     if (props.rates.empty() && props.bits.empty()) return;
 
     if (!props.rates.empty()) {
@@ -191,10 +192,11 @@ std::string Endpoint::ToString() const {
 
 std::shared_ptr<DeviceInventory> DeviceInventory::Discover(const Properties& properties) {
     std::shared_ptr<DeviceInventory> inventory(new DeviceInventory());
+    inventory->properties_ = properties;
     inventory->SelectCards(properties);
     inventory->CollectCandidates(properties);
     inventory->ProbeCapabilities();
-    inventory->FilterCapabilities();
+    inventory->FilterCapabilities(properties);
     inventory->AssignRoles();
     inventory->AddNullEndpointsIfNeeded(properties.null_mic);
     inventory->FinalizeEndpoints();
@@ -422,14 +424,14 @@ void DeviceInventory::ProbeCapabilities() {
     }
 }
 
-void DeviceInventory::FilterCapabilities() {
+void DeviceInventory::FilterCapabilities(const Properties& properties) {
     for (Endpoint& endpoint : endpoints_) {
         if (endpoint.IsNull()) continue;
         const auto card = std::find_if(cards_.begin(), cards_.end(), [&endpoint](const auto& c) {
             return c.index == endpoint.card;
         });
         if (card == cards_.end()) continue;
-        FilterEndpointCapabilities(*card, &endpoint);
+        FilterEndpointCapabilities(properties, *card, &endpoint);
     }
 }
 
@@ -686,7 +688,7 @@ std::optional<Endpoint> DeviceInventory::MakeUsbEndpoint(const AudioDevice& devi
     // A card connected at run time never went through FilterCapabilities().
     // `e.card_id` stays the card index: it is part of the port address.
     if (const auto card = alsa::QueryCard(e.card); card.has_value()) {
-        FilterEndpointCapabilities(*card, &e);
+        FilterEndpointCapabilities(properties_, *card, &e);
     }
     e.profiles = alsa::ProfilesFromCapabilities(e.caps, is_input);
     LOG(INFO) << __func__ << ": " << e.ToString();

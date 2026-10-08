@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -12,12 +13,19 @@
 
 namespace aidl::android::hardware::audio::core::mainline {
 
-// All Android properties understood by the HAL. Every key carries the
-// "vendor.audio.mainline." prefix. Values are read once at start-up; the HAL
-// has to be restarted for a change to take effect.
+// All settings understood by the HAL. Each one is an Android property with
+// the "vendor.audio.mainline." prefix, which a setting stored through the
+// control interface overrides (`overrides`, keyed by the name without the
+// prefix). Values are read once at start-up; the HAL has to be restarted for
+// a change to take effect.
 //
-// The names are documented in README.md. Keep both in sync.
+// The names are documented in README.md. Keep both in sync, and keep
+// Properties::Specs() in sync with Load().
 struct Properties {
+    // Stored settings in effect, by key without the prefix. They win over the
+    // Android properties.
+    std::map<std::string, std::string> overrides;
+
     // Comma separated list of sound cards to use. Each entry is either a card
     // index ("0"), a card id ("PCH") or a card name ("HDA Intel PCH"). An empty
     // list means "every card except USB ones".
@@ -95,13 +103,38 @@ struct Properties {
         std::optional<bool> hbr;
     };
 
-    static Properties Load();
+    static Properties Load(std::map<std::string, std::string> overrides = {});
     std::string ToString() const;
 
-    // Reads per-card properties for a card, merging across all matching
+    // Reads the per-card settings of a card, merging across all matching
     // selectors (id, index, name with spaces as underscores).
-    static CardProperties LoadCardProperties(const std::string& card_id, int card_index,
-                                             const std::string& card_name);
+    CardProperties ForCard(const std::string& card_id, int card_index,
+                           const std::string& card_name) const;
+
+    // What a setting is, for the control interface to list and validate.
+    struct Spec {
+        enum class Type {
+            kBool,
+            kInt,  // Within [min, max]; Load() clamps.
+            kString,
+            kList,    // Comma separated.
+            kIntList  // Comma separated integers within [min, max].
+        };
+        std::string key;  // Without the prefix, e.g. "latency_ms", "card.PCH.rates".
+        Type type = Type::kString;
+        int min = 0;
+        int max = 0;
+    };
+    // The global settings, and the per-card ones of `card_ids`.
+    static std::vector<Spec> Specs(const std::vector<std::string>& card_ids);
+    // The spec of `key`, also for per-card keys of any selector; nullopt for
+    // an unknown key.
+    static std::optional<Spec> SpecOf(const std::string& key);
+    // Whether `value` is valid for `spec`; Load() would accept and not clamp it.
+    static bool IsValid(const Spec& spec, const std::string& value);
+    // The value each spec of Specs(card_ids) has in these properties, as text
+    // (booleans "true" / "false", lists comma separated, unset "").
+    std::map<std::string, std::string> Values(const std::vector<std::string>& card_ids) const;
 
     static constexpr const char* kPrefix = "vendor.audio.mainline.";
 };
