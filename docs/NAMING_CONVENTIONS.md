@@ -65,6 +65,25 @@ not a hard requirement (see `docs/INITIAL_IMPLEMENTATION_GUIDELINES.md`).
   implementation-specific one — e.g. `vendor.sensors.*`, `vendor.vibrator.*`,
   `vendor.audio.*`.
 
+## Settings apps and control interfaces
+
+For an app that ships with a HAL and the interface it uses (see
+`docs/HAL_APPS.md`), with `<Domain>` / `<domain>` the HAL's domain:
+
+| What | Pattern | Example |
+|------|---------|---------|
+| Control AIDL package | `vendor.mainline.<domain>` | `vendor.mainline.audio` |
+| App module (in the APEX) | `Mainline<Domain>Settings` | `MainlineAudioSettings` |
+| App package | `vendor.mainline.<domain>.settings` | `vendor.mainline.sensors.settings` |
+| Further apps | `Mainline<Domain><Purpose>`, `vendor.mainline.<domain>.<purpose>` | `MainlineAudioRouting`, `vendor.mainline.audio.routing` |
+| App source directory | `settings/` next to the HAL | `interfaces/audio/mainline/settings/` |
+| HAL state directory | `/data/vendor/mainline_<domain>` | `/data/vendor/mainline_audio` |
+| SELinux app domain | `mainline_<domain>_<purpose>_app` | `mainline_audio_settings_app` |
+
+Names this repository defines never contain `lineage` or `lineageos`: the
+components also build and run in pristine AOSP. Copyright headers keep
+"The LineageOS Project" (`docs/CODE_STYLE.md`).
+
 ## Never rename
 
 Never rename the AIDL/HIDL HAL interface itself, regardless of how many

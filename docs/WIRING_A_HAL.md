@@ -29,6 +29,7 @@ lives in `device/mainline/common/optional/<domain>-hal_<name>/`.
 | 7 | Add a default in `optional/options.mk` only if it is safe for every device | Use `?=` |
 | 8 | Add SELinux policy | `device/mainline/common/sepolicy/vendor/`, checked by `build/tools/check_sepolicy.py` |
 | 9 | Record upstream sources | `README.md` "Upstreams" table |
+| 10 | With a settings app: install the control interface's compatibility matrix and any product side app from `product.mk`, add the app's `seapp_contexts` entry and domain | `docs/HAL_APPS.md` |
 
 ## Selection file pattern
 
