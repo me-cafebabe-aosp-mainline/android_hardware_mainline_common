@@ -22,6 +22,7 @@
 #include "alsa/AlsaCard.h"
 #include "alsa/AlsaControls.h"
 #include "alsa/AlsaError.h"
+#include "passthrough/Encoder.h"
 #include "passthrough/Format.h"
 #include "passthrough/SinkCapabilities.h"
 #include "ucm/UcmManager.h"
@@ -75,7 +76,12 @@ bool IsAcceptable(const std::string& key, const std::string& value) {
     if (key != "hdmi.passthrough_formats") return true;
     for (const std::string& name : ::android::base::Split(value, ",")) {
         const std::string trimmed = ::android::base::Trim(name);
-        if (!trimmed.empty() && !passthrough::EncodedFormatFromString(trimmed).has_value()) {
+        if (trimmed.empty()) continue;
+        // A format this build can not pack (DTS-HD and TrueHD without the
+        // ffmpeg_passthrough option) would only be dropped with a warning.
+        const auto format = passthrough::EncodedFormatFromString(trimmed);
+        if (!format.has_value() || (*format != passthrough::EncodedFormat::kIec61937 &&
+                                    !passthrough::Encoder::CanPack(*format))) {
             return false;
         }
     }
