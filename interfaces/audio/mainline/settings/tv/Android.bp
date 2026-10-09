@@ -1,0 +1,13 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// Fills TvSettings' Display & sound › "default audio output settings" slot
+// with the slice of MainlineAudioSettings (TvSliceProvider). Without the app,
+// TvSettings keeps the slot hidden, and a TvSettings without the slot ignores
+// these strings.
+runtime_resource_overlay {
+    name: "MainlineAudioTvSettingsOverlay",
+    vendor: true,
+}

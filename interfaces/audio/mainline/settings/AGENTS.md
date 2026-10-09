@@ -26,6 +26,10 @@
 This directory (`MainlineAudioSettings`, APEX app):
 
 - `AudioSettingsActivity.kt`, `AudioSettingsFragment.kt`: the entry page.
+- `HardwarePage.kt`: the hardware pages, which the activity also opens one
+  at a time (`EXTRA_PAGE`).
+- `TvSliceProvider.kt`: the page TvSettings shows in Display & sound, rows
+  that open the routing page and each hardware page.
 - `AudioDevices.kt`: the HAL endpoint behind an `AudioDeviceInfo`.
 - `DiagnosticsFragment.kt`, `DiagnosticsViewModel.kt`, `StatusText.kt`:
   Hardware › Sound cards, the report, the HDMI test and high bit rate retry.
@@ -37,6 +41,9 @@ This directory (`MainlineAudioSettings`, APEX app):
 - `HalSettingsFragment.kt`, `HalSettingsViewModel.kt`,
   `ConfirmSettingsDialogFragment.kt`: Hardware › Advanced, the trial dialog.
 - `HalControl.kt`: the only code that talks to `IControl`.
+
+`tv/` (`MainlineAudioTvSettingsOverlay`, vendor RRO): points TvSettings'
+"default audio output settings" slot at `TvSliceProvider`.
 
 ## Invariants
 
@@ -64,6 +71,11 @@ This directory (`MainlineAudioSettings`, APEX app):
   `AudioDeviceInfo.getId()`, which changes when a device reconnects.
 - The routing tile's `com.android.settings.summary_uri` meta-data and
   `RoutingSummaryProvider.SUMMARY_URI` must name the same URI.
+- `tv/res/values/strings.xml` (`default_audio_output_settings_slice_uri`)
+  and `TvSliceProvider.SLICE_URI` must name the same URI.
+- `TvSliceProvider.onBindSlice()` runs under a StrictMode policy that kills
+  the process on disk reads (`SliceProvider.onBindSliceStrict()`): no
+  `HalControl`, no files, only resources, PackageManager and PendingIntents.
 - Keep `README.md` in sync with behavior, permission or packaging changes.
 
 ## Framework interaction (AOSP source)
@@ -74,6 +86,11 @@ This directory (`MainlineAudioSettings`, APEX app):
 - `frameworks/base/services/core/java/com/android/server/audio/`:
   `AudioDeviceBroker`, `AudioDeviceInventory` (how preferences are kept).
 - `frameworks/base/packages/SettingsLib/Tile/`: the Settings tile protocol.
+- `packages/apps/TvSettings/`: the slot (`Settings/res/xml/display_sound.xml`,
+  `DisplaySoundFragment.updateDefaultAudioOutputSettings()`), the row layout
+  TvSettings reads (`TwoPanelSettingsLib/.../slices/SlicePreferenceUtil.kt`,
+  `builders/PreferenceSliceBuilderImpl.java`, `SlicesConstants.java`) and how
+  it fires a row's action (`SliceShard.firePendingIntent()`).
 - `AudioManager.getDirectPlaybackSupport()`, `getEncodedSurroundMode()` and
   `AudioDeviceInfo.getEncodings()`: the public view of passthrough. Do not
   use `getReportedSurroundFormats()` / `getSurroundFormats()`: they are

@@ -18,6 +18,10 @@ So the APEX app requests no privileged permission at all, and the routing
 page is a small product app with its own allowlist. Each works without the
 other.
 
+On Android TV, TvSettings has no tiles: both apps are reached from
+**Display & sound › Audio devices and hardware** instead (see
+[Android TV](#android-tv)).
+
 ## Default audio devices (`routing/`)
 
 Pick the device all audio goes to, or *Automatic* to leave the choice to
@@ -71,6 +75,17 @@ choice in device-protected storage and applies it again on
   device defaults** drops everything set here. Passthrough formats are
   picked from the ones this HAL build can pack.
 
+## Android TV
+
+TvSettings' Display & sound screen has a hidden "default audio output
+settings" entry, a slice whose URI and title are overlayable strings.
+`MainlineAudioTvSettingsOverlay` (`tv/`, vendor) points it at
+`TvSliceProvider` of the hardware app, which lists Default audio devices
+(when the routing app is installed), Sound cards, Speakers, Mixer and
+Advanced; each opens that page on its own, and Back returns to TvSettings.
+TvSettings shows the entry only while the provider answers, so the overlay
+does nothing without the app, and a TvSettings without the slot ignores it.
+
 ## How it fits together
 
 | Piece | Where |
@@ -79,6 +94,7 @@ choice in device-protected storage and applies it again on
 | Routing app | `/product/priv-app/MainlineAudioRouting` |
 | Routing app's allowlist | `/product/etc/permissions/privapp-permissions-vendor.mainline.audio.routing.xml` |
 | Settings tiles | `com.android.settings.action.IA_SETTINGS`, category `ia.sound`, group `audio_category` |
+| TvSettings entry | `content://vendor.mainline.audio.settings.slices/hardware`, from `/vendor/overlay/MainlineAudioTvSettingsOverlay` |
 | Routing tile summary | `RoutingSummaryProvider`, `content://vendor.mainline.audio.routing.summary` |
 | HAL interface | `vendor.mainline.audio.IControl/default` (`../aidl`), hardware app only |
 | Hardware app's SELinux domain | from the device's vendor `seapp_contexts` |
@@ -105,6 +121,8 @@ SDK, `priv_app` domain, allowlist on `/product`.
 ```
 adb shell am start -n vendor.mainline.audio.settings/.AudioSettingsActivity
 adb shell am start -n vendor.mainline.audio.routing/.RoutingActivity
+adb shell am start -n vendor.mainline.audio.settings/.AudioSettingsActivity --es vendor.mainline.audio.settings.extra.PAGE speakers
+adb shell cmd overlay list com.android.tv.settings
 adb shell content call --uri content://vendor.mainline.audio.routing.summary --method getDynamicSummary
 adb shell dumpsys audio | grep -i -A3 'preferred'
 adb shell ps -AZ | grep vendor.mainline.audio

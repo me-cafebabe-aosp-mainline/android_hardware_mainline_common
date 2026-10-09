@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- TvSliceProvider.SLICE_URI of MainlineAudioSettings. -->
+    <string name="default_audio_output_settings_slice_uri" translatable="false">content://vendor.mainline.audio.settings.slices/hardware</string>
+    <string name="default_audio_output_settings_title">Audio devices and hardware</string>
+</resources>
