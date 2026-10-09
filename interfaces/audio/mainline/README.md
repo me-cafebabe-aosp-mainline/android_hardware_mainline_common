@@ -385,8 +385,9 @@ UCM enables a device on the card (UCM sequences set the controls they know
 about, which would otherwise undo the user's choice). It reports the cards,
 their UCM verb and enabled devices, and every endpoint with its path,
 capabilities, jack state, stream usage and, for HDMI heads, the sink's
-passthrough formats, plus a plain text report (`dumpsys` output and
-`/proc/asound`).
+passthrough formats, plus a plain text report (`dumpsys` output, and from
+`/proc/asound` the cards, the PCM devices, the HDMI sinks' ELDs and the HDA
+codecs, whose pin capabilities tell whether HDMI can do high bit rate).
 
 Every setting of the table above (except `settings.ignore`) can also be set
 through `IControl`, which stores it in `/data/vendor/mainline_audio`; a

@@ -7,6 +7,8 @@
 
 #include "control/ControlService.h"
 
+#include <dirent.h>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -132,6 +134,25 @@ std::optional<dsp::OutputConfig> FromAidl(const OutputSettings& settings) {
     return config;
 }
 
+// The HDMI related files of a card's /proc/asound directory: the sinks' ELDs
+// ("eld#<codec>.<pin>") and, on HDA, the codecs ("codec#<n>") with their pin
+// capabilities (HBR, rates, channels). Sorted, so that reports compare.
+std::vector<std::string> HdmiProcFiles(int card) {
+    const std::string dir = "/proc/asound/card" + std::to_string(card);
+    std::vector<std::string> files;
+    std::unique_ptr<DIR, decltype(&closedir)> handle(opendir(dir.c_str()), &closedir);
+    if (handle == nullptr) return files;
+    while (const dirent* entry = readdir(handle.get())) {
+        const std::string name = entry->d_name;
+        if (::android::base::StartsWith(name, "eld#") ||
+            ::android::base::StartsWith(name, "codec#")) {
+            files.push_back(dir + "/" + name);
+        }
+    }
+    std::sort(files.begin(), files.end());
+    return files;
+}
+
 CardStatus MakeCardStatus(const alsa::CardInfo& card, const routing::DeviceInventory& inventory) {
     CardStatus status{.index = card.index,
                       .id = card.id,
@@ -253,7 +274,12 @@ HdmiSinkStatus ControlService::MakeHdmiSinkStatus(const routing::Endpoint& head)
 
 ndk::ScopedAStatus ControlService::getReport(std::string* _aidl_return) {
     std::string report = module_->DumpState();
-    for (const char* path : {"/proc/asound/cards", "/proc/asound/pcm"}) {
+    std::vector<std::string> paths = {"/proc/asound/cards", "/proc/asound/pcm"};
+    for (const alsa::CardInfo& card : module_->inventory().cards()) {
+        const std::vector<std::string> hdmi = HdmiProcFiles(card.index);
+        paths.insert(paths.end(), hdmi.begin(), hdmi.end());
+    }
+    for (const std::string& path : paths) {
         std::string contents;
         if (!::android::base::ReadFileToString(path, &contents)) {
             contents = "(unreadable)\n";

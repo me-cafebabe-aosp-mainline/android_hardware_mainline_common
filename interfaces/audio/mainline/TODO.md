@@ -32,7 +32,8 @@ here yet.
    controller, the Tegra display side, or the period / buffer sizes of
    `PassthroughSink::Open()`. Data asked from the tester: Tegra SoC,
    `/proc/asound/card0/eld#*`, `/proc/asound/card0/codec#*` (HBR, rates,
-   channels), `tinypcminfo -D 0 -d 3`, `dmesg` (hda / hdmi / sor). Also
+   channels; both are in the settings app's report now),
+   `tinypcminfo -D 0 -d 3`, `dmesg` (hda / hdmi / sor). Also
    asked: retry with Kodi's TrueHD / DTS-HD receiver options off, to see
    whether the 2 channel formats work.
 2. The formats do not show in Android TV's Surround sound settings,
