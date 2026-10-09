@@ -10,6 +10,8 @@ builds on the standard Linux audio user space:
   routing knowledge ("Speaker", "Headphones", "HDMI1", ... and the mixer
   sequences that switch between them).
 
+Verification status, known issues and what is left: `TODO.md`.
+
 The HAL is packaged as a vendor APEX (`com.android.hardware.audio.mainline`).
 It provides the core HAL only; the effect HAL (`IFactory/default`) is expected
 to come from the device, for instance the legacy effect library wrapper in

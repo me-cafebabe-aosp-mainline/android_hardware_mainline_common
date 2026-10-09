@@ -7,6 +7,10 @@
 Read `README.md` first for the product view, `INITIAL_IMPLEMENTATION.md` for
 the original requirements. This file is about the code.
 
+Before starting work, read `TODO.md`: what works and where it was verified,
+known issues, and the list of what is left, in order. Update it in the same
+commit when you change any of that.
+
 ## Ground rules
 
 * Our own code uses Google naming (`CamelCase()` functions, `snake_case_`
