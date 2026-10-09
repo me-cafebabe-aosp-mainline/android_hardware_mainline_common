@@ -307,6 +307,15 @@ void AlsaHdmiControl::ReportHbrFailure(const std::string& reason) {
     if (head_states_ != nullptr) head_states_->SetHbrFailure(head_key_, reason);
 }
 
+void AlsaHdmiControl::ReportAttempt(PassthroughAttempt attempt) {
+    if (head_states_ != nullptr) head_states_->SetLastAttempt(head_key_, std::move(attempt));
+}
+
+std::optional<PassthroughAttempt> AlsaHdmiControl::LastAttempt() const {
+    if (head_states_ == nullptr) return std::nullopt;
+    return head_states_->LastAttempt(head_key_);
+}
+
 std::string AlsaHdmiControl::Describe() const {
     std::ostringstream os;
     os << head_key_ << " quirk=" << quirk_.name << " ELD="
@@ -367,6 +376,18 @@ bool HeadStates::ClearHbrFailures() {
     const bool had_failures = !hbr_failures_.empty();
     hbr_failures_.clear();
     return had_failures;
+}
+
+void HeadStates::SetLastAttempt(const std::string& head, PassthroughAttempt attempt) {
+    std::lock_guard guard(lock_);
+    last_attempts_[head] = std::move(attempt);
+}
+
+std::optional<PassthroughAttempt> HeadStates::LastAttempt(const std::string& head) const {
+    std::lock_guard guard(lock_);
+    const auto it = last_attempts_.find(head);
+    if (it == last_attempts_.end()) return std::nullopt;
+    return it->second;
 }
 
 std::unique_ptr<HdmiControl> CreateHdmiControl(const alsa::CardInfo& card,

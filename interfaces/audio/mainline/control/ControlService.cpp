@@ -24,7 +24,9 @@
 #include "alsa/AlsaError.h"
 #include "passthrough/Encoder.h"
 #include "passthrough/Format.h"
+#include "passthrough/Probe.h"
 #include "passthrough/SinkCapabilities.h"
+#include "routing/ConfigurationBuilder.h"
 #include "ucm/UcmManager.h"
 
 namespace aidl::android::hardware::audio::core::mainline::control {
@@ -35,6 +37,8 @@ using ::aidl::vendor::mainline::audio::EndpointStatus;
 using ::aidl::vendor::mainline::audio::HdmiSinkStatus;
 using ::aidl::vendor::mainline::audio::MixerControl;
 using ::aidl::vendor::mainline::audio::OutputSettings;
+using ::aidl::vendor::mainline::audio::PassthroughAttempt;
+using ::aidl::vendor::mainline::audio::PassthroughProbe;
 using ::aidl::vendor::mainline::audio::Setting;
 using ::aidl::vendor::mainline::audio::SettingChange;
 using ::aidl::vendor::mainline::audio::SinkFormat;
@@ -159,6 +163,21 @@ std::vector<std::string> HdmiProcFiles(int card) {
     return files;
 }
 
+PassthroughAttempt ToAidl(const passthrough::PassthroughAttempt& attempt) {
+    PassthroughAttempt result{.format = passthrough::ToString(attempt.format),
+                              .contentRate = static_cast<int32_t>(attempt.content_rate),
+                              .channels = static_cast<int32_t>(attempt.channels),
+                              .succeeded = attempt.succeeded,
+                              .failedStep = attempt.failed_step,
+                              .error = attempt.error,
+                              .timeMillis = attempt.time_ms};
+    if (attempt.stream.has_value()) {
+        result.pcmChannels = static_cast<int32_t>(attempt.stream->pcm_channels);
+        result.pcmRate = static_cast<int32_t>(attempt.stream->pcm_rate);
+    }
+    return result;
+}
+
 CardStatus MakeCardStatus(const alsa::CardInfo& card, const routing::DeviceInventory& inventory) {
     CardStatus status{.index = card.index,
                       .id = card.id,
@@ -210,6 +229,20 @@ ndk::ScopedAStatus ControlService::getStatus(Status* _aidl_return) {
     for (const routing::Endpoint& endpoint : inventory.endpoints()) {
         status.endpoints.push_back(MakeEndpointStatus(endpoint));
     }
+    // FAST is decided for every rate of the primary output; 48 kHz stands
+    // for them here.
+    constexpr int32_t kRate = 48000;
+    status.fastLatencyMs = module_->properties().fast_latency_ms;
+    status.fastActive = module_->fast_output_active();
+    if (status.fastLatencyMs > 0) {
+        status.fastBufferFrames = routing::ModuleBufferSizeFrames(status.fastLatencyMs, kRate);
+    }
+    status.normalMixerFrames = routing::NormalMixerFrames(kRate);
+    for (const passthrough::EncodedFormat format : passthrough::AllEncodedFormats()) {
+        if (passthrough::Encoder::CanPack(format)) {
+            status.passthroughFormats.push_back(passthrough::ToString(format));
+        }
+    }
     *_aidl_return = std::move(status);
     return ndk::ScopedAStatus::ok();
 }
@@ -244,6 +277,13 @@ EndpointStatus ControlService::MakeEndpointStatus(const routing::Endpoint& endpo
     if (endpoint.IsNull()) return status;
     if (endpoint.pcm_identity.IsKnown()) {
         status.pcmOwner = module_->pcm_arbiter().OwnerOf(endpoint.pcm_identity);
+        status.silencedStreams = module_->pcm_arbiter().SilencedOn(endpoint.pcm_identity);
+    }
+    if (!endpoint.is_input) {
+        if (const auto fast = module_->fast_periods().Get(endpoint.Key()); fast.has_value()) {
+            status.fastBurstFrames = static_cast<int32_t>(fast->burst_frames);
+            status.fastPeriodFrames = static_cast<int32_t>(fast->period_frames);
+        }
     }
     if (!endpoint.jack_control.empty()) {
         if (const auto plugged = alsa::ReadJackState(endpoint.card, endpoint.jack_control);
@@ -266,7 +306,13 @@ HdmiSinkStatus ControlService::MakeHdmiSinkStatus(const routing::Endpoint& head)
     status.source = passthrough::ToString(sink.source);
     status.monitorName = sink.monitor_name;
     status.maxPcmChannels = static_cast<int32_t>(sink.max_pcm_channels);
-    status.hbr = passthrough::ToString(control->Hbr().support);
+    const passthrough::HbrState hbr = control->Hbr();
+    status.hbr = passthrough::ToString(hbr.support);
+    status.hbrSource = passthrough::ToString(hbr.source);
+    status.hbrDetail = hbr.detail;
+    if (const auto attempt = control->LastAttempt(); attempt.has_value()) {
+        status.lastAttempt = ToAidl(*attempt);
+    }
     for (const auto& [format, caps] : sink.formats) {
         SinkFormat entry{.name = passthrough::ToString(format),
                          .maxChannels = static_cast<int32_t>(caps.max_channels)};
@@ -471,6 +517,55 @@ ndk::ScopedAStatus ControlService::playTestTone(const std::string& key, int32_t 
     }
     configs->StartTone(key, static_cast<unsigned int>(channel),
                        std::chrono::milliseconds(std::clamp(duration_ms, 100, 5000)));
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::resetHbr() {
+    if (module_->head_states().ClearHbrFailures()) {
+        LOG(INFO) << __func__ << ": forgot the high bit rate refusals";
+    }
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus ControlService::probeHdmi(const std::string& key,
+                                             std::vector<PassthroughProbe>* _aidl_return) {
+    const routing::Endpoint* head = FindOutput(key);
+    if (head == nullptr || !head->is_hdmi_head) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    std::unique_ptr<passthrough::HdmiControl> control = module_->MakeHdmiControl(*head);
+    if (control == nullptr) return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+
+    // Take the device like a stream, but as a mixed one: never pre-empt a
+    // stream for a probe. The probe does not yield, it just ends; its "burst"
+    // makes a direct stream that starts meanwhile wait long enough for that
+    // (PcmArbiter waits two bursts plus a margin).
+    constexpr int32_t kProbeBurstMs = 250;
+    routing::PcmArbiter& arbiter = *module_->shared_pcm_arbiter();
+    const alsa::PcmIdentity& pcm = head->pcm_identity;
+    const bool arbitrated = pcm.IsKnown() && pcm.exclusive;
+    auto client = std::make_shared<routing::PcmArbiter::Client>(
+            "settings app probe", routing::PcmArbiter::Priority::kMixed, kProbeBurstMs);
+    if (arbitrated) {
+        int32_t unused_timeout_ms = 0;
+        if (arbiter.Acquire(client, pcm, &unused_timeout_ms) !=
+            routing::PcmArbiter::Result::kGranted) {
+            arbiter.Release(*client, pcm);
+            LOG(INFO) << __func__ << ": " << key << " is in use";
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+        }
+    }
+    std::vector<PassthroughProbe> results;
+    for (const passthrough::ProbeResult& result : passthrough::ProbeHead(*control, *head)) {
+        results.push_back(PassthroughProbe{.channels = static_cast<int32_t>(result.channels),
+                                           .rate = static_cast<int32_t>(result.rate),
+                                           .hbr = result.hbr,
+                                           .accepted = result.accepted,
+                                           .failedStep = result.failed_step,
+                                           .error = result.error});
+    }
+    if (arbitrated) arbiter.Release(*client, pcm);
+    *_aidl_return = std::move(results);
     return ndk::ScopedAStatus::ok();
 }
 

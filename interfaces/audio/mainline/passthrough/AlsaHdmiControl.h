@@ -46,6 +46,8 @@ class AlsaHdmiControl final : public HdmiControl {
     void ClearNonAudio() override;
     HbrState Hbr() const override;
     void ReportHbrFailure(const std::string& reason) override;
+    void ReportAttempt(PassthroughAttempt attempt) override;
+    std::optional<PassthroughAttempt> LastAttempt() const override;
     std::string Describe() const override;
 
   private:

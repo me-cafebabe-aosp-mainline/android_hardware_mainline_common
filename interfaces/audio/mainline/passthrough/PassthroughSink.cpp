@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <string>
 
 #include <android-base/logging.h>
@@ -49,8 +50,7 @@ bool PassthroughSink::Open(const routing::Endpoint& head) {
         LOG(ERROR) << __func__ << ": " << ToString(config_.format) << " at " << config_.content_rate
                    << " Hz, " << config_.channels << " channels can not be sent to "
                    << control_->Describe();
-        Close();
-        return false;
+        return Fail("format");
     }
     if (config_.format != EncodedFormat::kIec61937) {
         encoder_ = Encoder::Create(
@@ -59,8 +59,7 @@ bool PassthroughSink::Open(const routing::Endpoint& head) {
         if (encoder_ == nullptr || encoder_->OutputChannels() != iec_->pcm_channels) {
             LOG(ERROR) << __func__ << ": no packer for " << ToString(config_.format) << " as "
                        << iec_->ToString();
-            Close();
-            return false;
+            return Fail("packer");
         }
     }
     // Before the PCM device is opened: HDA takes the non-audio flag into the
@@ -68,8 +67,7 @@ bool PassthroughSink::Open(const routing::Endpoint& head) {
     status_guard_ = control_->SetChannelStatus(NonAudioChannelStatus(*iec_));
     if (status_guard_ == nullptr) {
         LOG(ERROR) << __func__ << ": could not set the channel status of " << control_->Describe();
-        Close();
-        return false;
+        return Fail("channel status");
     }
 
     alsa::PcmConfig pcm_config;
@@ -92,14 +90,34 @@ bool PassthroughSink::Open(const routing::Endpoint& head) {
     }
     if (pcm_ == nullptr) {
         if (iec_->hbr) CheckHbrRefusal(head, pcm_config, error);
-        Close();
-        return false;
+        return Fail(alsa::ToString(error.step), error.error);
     }
     pcm_frames_written_ = 0;
     partial_frame_.clear();
+    RecordAttempt(true, "", 0);
     LOG(INFO) << __func__ << ": " << ToString(config_.format) << " at " << config_.content_rate
               << " Hz as " << iec_->ToString() << " on " << control_->Describe();
     return true;
+}
+
+void PassthroughSink::RecordAttempt(bool succeeded, const std::string& failed_step, int error) {
+    if (control_ == nullptr) return;
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    control_->ReportAttempt(PassthroughAttempt{
+            .format = config_.format,
+            .content_rate = config_.content_rate,
+            .channels = config_.channels,
+            .stream = iec_,
+            .succeeded = succeeded,
+            .failed_step = failed_step,
+            .error = error,
+            .time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now).count()});
+}
+
+bool PassthroughSink::Fail(const std::string& step, int error) {
+    RecordAttempt(false, step, error);
+    Close();
+    return false;
 }
 
 // Only a refusal of high bit rate itself counts, not one caused by anything

@@ -119,7 +119,8 @@ ModuleMainline::ModuleMainline(std::unique_ptr<Configuration>&& config,
       head_states_(std::make_shared<passthrough::HeadStates>()),
       hdmi_control_factory_(MakeHdmiControlFactory(properties_, inventory_, head_states_)),
       forced_passthrough_formats_(ParseFormatList(properties.hdmi_passthrough_formats)),
-      passthrough_port_id_(FindMixPort(routing::kPassthroughOutputMixPort)) {
+      passthrough_port_id_(FindMixPort(routing::kPassthroughOutputMixPort)),
+      fast_periods_(std::make_shared<FastPeriods>()) {
     LOG(INFO) << __func__ << ": module ready";
 }
 
@@ -147,7 +148,8 @@ StreamDeps ModuleMainline::MakeStreamDeps() const {
                       .pcm_arbiter = pcm_arbiter_,
                       .mic_muted = mic_muted_,
                       .make_hdmi_control = hdmi_control_factory_,
-                      .output_configs = output_configs_};
+                      .output_configs = output_configs_,
+                      .fast_periods = fast_periods_};
 }
 
 // --- Optional sub-interfaces -------------------------------------------------

@@ -88,6 +88,9 @@ class PcmArbiter {
     std::vector<alsa::PcmIdentity> PendingYields(const Client& client) const;
     // Name of the client owning `pcm`, empty when nobody does.
     std::string OwnerOf(const alsa::PcmIdentity& pcm) const;
+    // Names of the mixed clients that asked for `pcm` and were refused because
+    // a direct one owns or claims it: they drop their audio meanwhile.
+    std::vector<std::string> SilencedOn(const alsa::PcmIdentity& pcm) const;
 
     std::string Dump() const;
 
@@ -97,6 +100,9 @@ class PcmArbiter {
         // Higher priority client waiting for `owner` to yield. It keeps the
         // device reserved until it acquires it or gives up.
         std::shared_ptr<Client> claimant;
+        // Mixed clients refused for a direct owner or claimant, by name, until
+        // they get the device or release it.
+        std::map<const Client*, std::string> silenced;
     };
 
     void ReleaseLocked(const Client& client, std::map<alsa::PcmIdentity, Entry>::iterator it)

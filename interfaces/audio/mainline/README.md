@@ -428,7 +428,16 @@ path (`EndpointStatus.key`), so they follow the card when its index changes.
 The device's SELinux policy has to label `/data/vendor/mainline_audio`
 for the HAL to write it; without it nothing is kept across restarts.
 
-The interface is frozen at version 1. The product has to install its framework
+Version 2 of the interface adds HDMI and low latency diagnostics: what
+decided high bit rate (the driver, the card setting or a refusal) and a way
+to forget refusals, the last passthrough stream of each HDMI output and why
+it failed, a probe that opens an idle HDMI output with each IEC 61937
+configuration (2 channels at 48 and 192 kHz, 8 channels at 192 kHz) without
+playing anything, whether `fast_latency_ms` gave the primary output a
+FastMixer and which period FAST streams got, and the mixed streams a direct
+stream silences.
+
+Version 1 is frozen; version 2 is not frozen yet. The product has to install its framework
 compatibility matrix entry, `framework_compatibility_matrix.mainline.audio.xml`
 (on `/product`), so that VINTF checks know the HAL; the device's SELinux
 policy decides who may use the service.

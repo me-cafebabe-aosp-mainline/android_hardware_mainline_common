@@ -374,6 +374,12 @@ void StreamMainline::OpenEndpoint(const routing::Endpoint& endpoint, const alsa:
         if (IsArbitrated(identity)) deps_.pcm_arbiter->Release(*arbiter_client_, identity);
         return;
     }
+    if (is_fast_ && deps_.fast_periods != nullptr) {
+        deps_.fast_periods->Set(
+                key, FastPeriods::Entry{
+                             .burst_frames = static_cast<uint32_t>(buffer_size_frames_),
+                             .period_frames = static_cast<uint32_t>(pcm->config().period_frames)});
+    }
     if (is_fast_ && pcm->config().period_frames > buffer_size_frames_) {
         // E.g. the Qualcomm q6asm front-end only accepts multiples of 480
         // frames: writes then block for more than a burst.

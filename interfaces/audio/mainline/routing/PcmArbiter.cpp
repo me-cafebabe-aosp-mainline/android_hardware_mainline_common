@@ -19,12 +19,22 @@ PcmArbiter::Result PcmArbiter::Acquire(const std::shared_ptr<Client>& client,
     std::lock_guard guard(lock_);
     Entry& entry = entries_[pcm];
     if (entry.owner == client) return Result::kGranted;
+    const auto refuse = [&entry, &client] {
+        const bool for_direct =
+                (entry.owner != nullptr && entry.owner->priority() == Priority::kDirect) ||
+                (entry.claimant != nullptr && entry.claimant->priority() == Priority::kDirect);
+        if (client->priority() == Priority::kMixed && for_direct) {
+            entry.silenced[client.get()] = client->name();
+        }
+        return Result::kBusy;
+    };
 
     if (entry.owner == nullptr) {
         // A device given up for a claimant stays reserved for it.
-        if (entry.claimant != nullptr && entry.claimant != client) return Result::kBusy;
+        if (entry.claimant != nullptr && entry.claimant != client) return refuse();
         entry.owner = client;
         entry.claimant = nullptr;
+        entry.silenced.erase(client.get());
         LOG(INFO) << __func__ << ": " << pcm.ToString() << " owned by " << client->name();
         return Result::kGranted;
     }
@@ -40,7 +50,7 @@ PcmArbiter::Result PcmArbiter::Acquire(const std::shared_ptr<Client>& client,
         *yield_timeout_ms = 2 * entry.owner->burst_ms_ + kYieldMarginMs;
         return Result::kWaitForYield;
     }
-    return Result::kBusy;
+    return refuse();
 }
 
 void PcmArbiter::ReleaseLocked(const Client& client,
@@ -56,6 +66,7 @@ void PcmArbiter::ReleaseLocked(const Client& client,
         LOG(INFO) << "Release: " << client.name() << " withdrew its claim on "
                   << it->first.ToString();
     }
+    entry.silenced.erase(&client);
     if (entry.owner == nullptr && entry.claimant == nullptr) entries_.erase(it);
 }
 
@@ -89,6 +100,15 @@ std::string PcmArbiter::OwnerOf(const alsa::PcmIdentity& pcm) const {
     return it->second.owner->name();
 }
 
+std::vector<std::string> PcmArbiter::SilencedOn(const alsa::PcmIdentity& pcm) const {
+    std::lock_guard guard(lock_);
+    std::vector<std::string> names;
+    if (const auto it = entries_.find(pcm); it != entries_.end()) {
+        for (const auto& [client, name] : it->second.silenced) names.push_back(name);
+    }
+    return names;
+}
+
 std::string PcmArbiter::Dump() const {
     std::lock_guard guard(lock_);
     std::ostringstream os;
@@ -97,6 +117,7 @@ std::string PcmArbiter::Dump() const {
         os << "  " << pcm.ToString()
            << ": owner=" << (entry.owner != nullptr ? entry.owner->name() : "none");
         if (entry.claimant != nullptr) os << " claimed by " << entry.claimant->name();
+        for (const auto& [client, name] : entry.silenced) os << ", silencing " << name;
         os << "\n";
     }
     return os.str();

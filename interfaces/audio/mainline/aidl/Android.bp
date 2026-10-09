@@ -6,16 +6,17 @@
 // Control interface between the mainline audio HAL and the settings app
 // shipped in the same APEX. See IControl.aidl.
 //
-// Frozen at version 1 (aidl_api/). To change it, see docs/HAL_APPS.md: set
-// `frozen: false`, edit, run m vendor.mainline.audio-update-api, and freeze
-// the new version (m vendor.mainline.audio-freeze-api) before it ships.
+// Version 1 is frozen (aidl_api/); version 2 is being written and must be
+// frozen (m vendor.mainline.audio-freeze-api) before it ships. After every
+// change of the .aidl files run m vendor.mainline.audio-update-api. See
+// docs/HAL_APPS.md.
 aidl_interface {
     name: "vendor.mainline.audio",
     owner: "mainline",
     vendor_available: true,
     srcs: ["vendor/mainline/audio/*.aidl"],
     stability: "vintf",
-    frozen: true,
+    frozen: false,
     backend: {
         cpp: {
             enabled: false,

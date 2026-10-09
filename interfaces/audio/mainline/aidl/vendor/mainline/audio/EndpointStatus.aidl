@@ -61,4 +61,19 @@ parcelable EndpointStatus {
 
     /** Set for HDMI and DisplayPort heads. */
     @nullable HdmiSinkStatus hdmi;
+
+    // Since version 2.
+
+    /**
+     * Mixed streams (e.g. the primary output) that play to this path but drop their audio, because
+     * a direct stream (`pcmOwner`) took the PCM device from them.
+     */
+    String[] silencedStreams = {};
+    /**
+     * The last low latency (FAST) stream that opened this path: its burst and the period the
+     * driver granted, in frames. A period longer than the burst makes the framework's FastMixer
+     * underrun. 0 when no FAST stream opened it since the HAL started.
+     */
+    int fastBurstFrames;
+    int fastPeriodFrames;
 }

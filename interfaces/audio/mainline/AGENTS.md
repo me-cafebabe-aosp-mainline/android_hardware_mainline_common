@@ -36,7 +36,8 @@ ModuleMainline.*           IModule: subclass of the example HAL's Module. Create
 Properties.*               vendor.audio.mainline.* -> struct Properties.
 aidl/                      vendor.mainline.audio: the control interface (IControl)
                            between the HAL and its settings app, and its framework
-                           compatibility matrix entry. Frozen at version 1.
+                           compatibility matrix entry. Version 1 frozen, version 2
+                           in progress (freeze it before it ships).
 control/
   ControlService.*         IControl: reads the module's state for the settings app,
                            adjusts the mixer.
@@ -201,8 +202,9 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   `UcmManager`. `PcmArbiter` is called from the workers, and read by
   `dump()` and `ControlService`.
 * One worker thread per stream (created by `StreamCommonImpl`): all
-  `DriverInterface` methods and every `alsa::Pcm` call. PCM handles are never
-  touched from Binder threads.
+  `DriverInterface` methods and every `alsa::Pcm` call. A stream's PCM
+  handles are never touched from Binder threads (`IControl.probeHdmi()` opens
+  its own, see "Control interface").
 * Hand-over: `connected_endpoints_` (guarded by `lock_`) + atomic
   `endpoints_updated_`; the worker copies into `active_endpoints_`.
 * `UcmManager` and `RoutingController` have their own mutexes; never call
@@ -370,13 +372,21 @@ We link `libaudioserviceexampleimpl` statically and derive from:
 * `MixerSettings` re-applies stored values from
   `RoutingController::SetDeviceEnabledListener()`, i.e. on a Binder thread
   with the routing lock held: it must not call back into routing or streams.
-* The interface is frozen at version 1 (`aidl/aidl_api/`). A change needs a
-  new version: unfreeze, edit, `m vendor.mainline.audio-update-api`, and in
-  the same change the VINTF fragment
-  (`android.hardware.audio.service-aidl.mainline.xml`), the compatibility
-  matrix (`aidl/compatibility_matrix.mainline.audio.xml`, a `1-2` range) and
-  the `-V<n>-ndk` / `-V<n>-java` library names follow. See
-  `docs/HAL_APPS.md`.
+* Version 1 of the interface is frozen (`aidl/aidl_api/`); version 2 (HDMI
+  diagnostics: high bit rate source and reset, last passthrough attempt,
+  `probeHdmi()`, FAST status, silenced streams) is unfrozen: run
+  `m vendor.mainline.audio-update-api` after every `.aidl` change and
+  `m vendor.mainline.audio-freeze-api` before it ships. Only append to it
+  (new methods, new fields at the end), never change what version 1 has.
+  The VINTF fragment (`android.hardware.audio.service-aidl.mainline.xml`,
+  version 2), the compatibility matrix
+  (`aidl/compatibility_matrix.mainline.audio.xml`, `1-2`) and the `-V2-ndk` /
+  `-V2-java` library names follow the version. See `docs/HAL_APPS.md`.
+* `IControl.probeHdmi()` is the one place where a Binder thread opens a PCM
+  device: it takes the head's device from the `PcmArbiter` as a mixed client
+  (it never pre-empts a stream), opens and closes it with each IEC 61937
+  configuration (`passthrough/Probe.*`) and records nothing, so it changes
+  neither the streams nor what `IModule` reports.
 
 ## Framework Interaction (AOSP source)
 

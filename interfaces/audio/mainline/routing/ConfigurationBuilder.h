@@ -48,6 +48,13 @@ inline constexpr uint32_t kHraOutputCutoff = 88200;
 //   * "primary input" routed from every input device port;
 //   * "usb output" / "usb input" with dynamic profiles, routed to the USB
 //     templates only.
+// Buffer size in frames the example Module derives from a nominal latency
+// for a PCM stream at `rate`.
+int32_t ModuleBufferSizeFrames(int32_t latency_ms, int32_t rate);
+// AudioFlinger's normal mixer period in frames at `rate`. A mixer output
+// whose buffer is smaller gets a FastMixer.
+int32_t NormalMixerFrames(int32_t rate);
+
 std::unique_ptr<Module::Configuration> BuildConfiguration(DeviceInventory& inventory,
                                                           const Properties& properties);
 

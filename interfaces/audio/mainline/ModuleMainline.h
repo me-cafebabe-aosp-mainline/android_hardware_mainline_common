@@ -44,6 +44,14 @@ class ModuleMainline final : public Module {
     const routing::DeviceInventory& inventory() const { return *inventory_; }
     const routing::RoutingController& routing_controller() const { return *routing_; }
     const routing::PcmArbiter& pcm_arbiter() const { return *pcm_arbiter_; }
+    // For the control service's own use of an HDMI head's device
+    // (IControl.probeHdmi()), which has to take it like a stream.
+    const std::shared_ptr<routing::PcmArbiter>& shared_pcm_arbiter() const { return pcm_arbiter_; }
+    // Run time knowledge about the HDMI heads (IControl.resetHbr()).
+    passthrough::HeadStates& head_states() const { return *head_states_; }
+    // Whether the primary output got the FAST flag (fast_latency_ms).
+    bool fast_output_active() const { return fast_output_port_id_ != 0; }
+    const FastPeriods& fast_periods() const { return *fast_periods_; }
     // The HdmiControl of an HDMI head, nullptr without passthrough controls.
     std::unique_ptr<passthrough::HdmiControl> MakeHdmiControl(const routing::Endpoint& head) const {
         return hdmi_control_factory_(head);
@@ -137,6 +145,7 @@ class ModuleMainline final : public Module {
     const std::vector<passthrough::EncodedFormat> forced_passthrough_formats_;
     // 0 without the "hdmi passthrough" mix port.
     const int32_t passthrough_port_id_;
+    const std::shared_ptr<FastPeriods> fast_periods_;
 };
 
 }  // namespace aidl::android::hardware::audio::core::mainline

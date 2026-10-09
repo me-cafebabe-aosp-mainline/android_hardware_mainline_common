@@ -208,22 +208,6 @@ alsa::HwCapabilities OrFallback(alsa::HwCapabilities caps, const char* port_name
     return fallback;
 }
 
-// AudioFlinger's normal mixer period (kNormalPlaybackPeriodMs in
-// Threads.cpp, "persist.audio.normal_playback_period_ms", 20 ms by default).
-constexpr int32_t kNormalMixerPeriodMs = 20;
-
-// Buffer size the example Module derives from a nominal latency for a PCM
-// stream (Module::calculateBufferSizeFramesForPcm(), which is protected):
-// rounded up to 16 frames and, above 512 frames at 44.1 kHz or more, to a
-// power of two.
-int32_t ModuleBufferSizeFrames(int32_t latency_ms, int32_t rate) {
-    const int32_t multiple_of_16 = (frameCountFromDurationMs(latency_ms, rate) + 15) & ~15;
-    if (rate < 44100 || multiple_of_16 <= 512) return multiple_of_16;
-    int32_t power_of_2 = 1;
-    while (power_of_2 < multiple_of_16) power_of_2 <<= 1;
-    return power_of_2;
-}
-
 // AudioFlinger only creates a FastMixer for a mixer output whose HAL buffer is
 // smaller than its normal mixer period (MixerThread constructor and
 // readOutputParameters_l() in Threads.cpp); the FAST flag of the output is not
@@ -233,7 +217,7 @@ bool GetsFastMixer(int32_t latency_ms, const std::vector<AudioProfile>& profiles
     for (const AudioProfile& profile : profiles) {
         for (const int32_t rate : profile.sampleRates) {
             const int32_t hal_frames = ModuleBufferSizeFrames(latency_ms, rate);
-            const int32_t normal_frames = (kNormalMixerPeriodMs * rate / 1000 + 15) & ~15;
+            const int32_t normal_frames = NormalMixerFrames(rate);
             if (hal_frames >= normal_frames) {
                 LOG(WARNING) << __func__ << ": " << latency_ms << " ms at " << rate << " Hz is a "
                              << hal_frames << " frame buffer, not below the " << normal_frames
@@ -257,6 +241,24 @@ std::vector<AudioProfile> UsbSimulationProfiles() {
 }
 
 }  // namespace
+
+// AudioFlinger's normal mixer period (kNormalPlaybackPeriodMs in
+// Threads.cpp, "persist.audio.normal_playback_period_ms", 20 ms by default),
+// rounded up to 16 frames like there.
+int32_t NormalMixerFrames(int32_t rate) {
+    constexpr int32_t kNormalMixerPeriodMs = 20;
+    return (kNormalMixerPeriodMs * rate / 1000 + 15) & ~15;
+}
+
+// Module::calculateBufferSizeFramesForPcm() is protected: rounded up to 16
+// frames and, above 512 frames at 44.1 kHz or more, to a power of two.
+int32_t ModuleBufferSizeFrames(int32_t latency_ms, int32_t rate) {
+    const int32_t multiple_of_16 = (frameCountFromDurationMs(latency_ms, rate) + 15) & ~15;
+    if (rate < 44100 || multiple_of_16 <= 512) return multiple_of_16;
+    int32_t power_of_2 = 1;
+    while (power_of_2 < multiple_of_16) power_of_2 <<= 1;
+    return power_of_2;
+}
 
 std::unique_ptr<Configuration> BuildConfiguration(DeviceInventory& inventory,
                                                   const Properties& properties) {

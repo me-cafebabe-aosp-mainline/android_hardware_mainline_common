@@ -22,6 +22,7 @@
 #include "routing/Endpoint.h"
 #include "routing/PcmArbiter.h"
 #include "routing/RoutingController.h"
+#include "stream/FastPeriods.h"
 #include "stream/NullDevice.h"
 
 namespace aidl::android::hardware::audio::core::mainline {
@@ -38,6 +39,8 @@ struct StreamDeps {
     passthrough::HdmiControlFactory make_hdmi_control;
     // Per endpoint output processing (speaker layout, levels, ...).
     std::shared_ptr<dsp::OutputConfigs> output_configs;
+    // What FAST streams got from the driver, for the control service.
+    std::shared_ptr<FastPeriods> fast_periods;
 };
 
 // alsa-lib backed implementation of DriverInterface for both directions.

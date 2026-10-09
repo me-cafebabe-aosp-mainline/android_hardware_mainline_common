@@ -54,9 +54,25 @@ class ChannelStatusGuard {
     virtual ~ChannelStatusGuard() = default;
 };
 
+// The last time a passthrough stream started on a head.
+struct PassthroughAttempt {
+    EncodedFormat format = EncodedFormat::kIec61937;
+    uint32_t content_rate = 0;
+    unsigned int channels = 0;
+    // The IEC 61937 stream it needed, nullopt when it did not get that far.
+    std::optional<IecStream> stream;
+    bool succeeded = false;
+    // "format", "packer", "channel status" or a PcmOpenError step; empty on
+    // success.
+    std::string failed_step;
+    int error = 0;
+    // CLOCK_REALTIME, milliseconds.
+    int64_t time_ms = 0;
+};
+
 // What the HAL learned about its HDMI heads at run time: which refused high
-// bit rate, and why. Survives the streams and the HdmiControl instances,
-// which are short lived; forgotten when HDMI connects again (a new sink, or
+// bit rate, and why, and how the last passthrough stream went. Survives the streams and the
+// HdmiControl instances, which are short lived; forgotten when HDMI connects again (a new sink, or
 // the same one after a replug). Thread safe.
 class HeadStates {
   public:
@@ -65,10 +81,13 @@ class HeadStates {
     std::optional<std::string> HbrFailure(const std::string& head) const;
     // Returns whether there was something to forget.
     bool ClearHbrFailures();
+    void SetLastAttempt(const std::string& head, PassthroughAttempt attempt);
+    std::optional<PassthroughAttempt> LastAttempt(const std::string& head) const;
 
   private:
     mutable std::mutex lock_;
     std::map<std::string, std::string> hbr_failures_ GUARDED_BY(lock_);
+    std::map<std::string, PassthroughAttempt> last_attempts_ GUARDED_BY(lock_);
 };
 
 // Vendor boundary of HDMI passthrough: everything that depends on where a
@@ -94,6 +113,9 @@ class HdmiControl {
     virtual HbrState Hbr() const = 0;
     // The head refused high bit rate (`reason`: what and how): remember it.
     virtual void ReportHbrFailure(const std::string& reason) = 0;
+    // Records how a passthrough stream started, for the settings app.
+    virtual void ReportAttempt(PassthroughAttempt attempt) = 0;
+    virtual std::optional<PassthroughAttempt> LastAttempt() const = 0;
     // For logs and dumpsys.
     virtual std::string Describe() const = 0;
 };

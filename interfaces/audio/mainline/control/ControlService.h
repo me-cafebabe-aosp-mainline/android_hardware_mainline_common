@@ -52,6 +52,10 @@ class ControlService final : public ::aidl::vendor::mainline::audio::BnControl {
     ndk::ScopedAStatus resetOutputSettings(const std::string& key) override;
     ndk::ScopedAStatus playTestTone(const std::string& key, int32_t channel,
                                     int32_t duration_ms) override;
+    ndk::ScopedAStatus resetHbr() override;
+    ndk::ScopedAStatus probeHdmi(
+            const std::string& key,
+            std::vector<::aidl::vendor::mainline::audio::PassthroughProbe>* _aidl_return) override;
 
   private:
     ::aidl::vendor::mainline::audio::EndpointStatus MakeEndpointStatus(

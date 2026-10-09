@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "alsa/AlsaPcm.h"
@@ -69,6 +70,10 @@ class PassthroughSink {
     int64_t PresentedFrames(int64_t* time_ns);
 
   private:
+    // Records how Open() went on the head's HdmiControl, for the settings app.
+    void RecordAttempt(bool succeeded, const std::string& failed_step, int error);
+    // RecordAttempt() of a failure, then Close(); returns false.
+    bool Fail(const std::string& step, int error = 0);
     void CheckHbrRefusal(const routing::Endpoint& head, const alsa::PcmConfig& config,
                          const alsa::PcmOpenError& error);
     void WriteBursts(const uint8_t* data, size_t bytes);

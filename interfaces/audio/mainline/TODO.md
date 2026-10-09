@@ -22,6 +22,7 @@ here yet.
 | FAST primary output (`fast_latency_ms`): FastMixer, fast tracks | not verified |
 | VTS (`VtsHalAudioCoreModuleTargetTest`), in particular the dynamic `hdmi passthrough` port and the probe answer in `setAudioPortConfig()` | not run |
 | FFmpeg packer: flush / seek (the packer is rebuilt), positions for A/V sync | not verified |
+| `IControl` version 2 (HDMI / FAST diagnostics, `probeHdmi()`, `resetHbr()`) | not built; the API dump needs `m vendor.mainline.audio-update-api` |
 
 ## Known issues
 
@@ -55,9 +56,13 @@ Verification:
 
 2. The "not verified" / "not run" rows above, VTS first.
 
+Before shipping:
+
+3. Freeze `IControl` version 2 (`m vendor.mainline.audio-freeze-api`).
+
 Waiting for a maintainer decision:
 
-3. AAC (ADTS framing) passthrough through FFmpeg, and plain DTS through
+4. AAC (ADTS framing) passthrough through FFmpeg, and plain DTS through
    FFmpeg when `ffmpeg_passthrough` is set (adds little endian and 14-bit
    DTS). Take the transport parameters from
    `external/ffmpeg/libavformat/spdifenc.c`, never from memory

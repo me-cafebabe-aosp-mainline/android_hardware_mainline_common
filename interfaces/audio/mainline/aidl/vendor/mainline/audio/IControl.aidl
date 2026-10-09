@@ -7,6 +7,7 @@ package vendor.mainline.audio;
 
 import vendor.mainline.audio.MixerControl;
 import vendor.mainline.audio.OutputSettings;
+import vendor.mainline.audio.PassthroughProbe;
 import vendor.mainline.audio.Setting;
 import vendor.mainline.audio.SettingChange;
 import vendor.mainline.audio.Status;
@@ -106,4 +107,22 @@ interface IControl {
      * EX_ILLEGAL_ARGUMENT for an unknown output or channel.
      */
     void playTestTone(String key, int channel, int durationMs);
+
+    // Since version 2.
+
+    /**
+     * Forgets the high bit rate refusals of the HDMI heads (HdmiSinkStatus.hbrSource "failure"),
+     * so that the next passthrough stream tries high bit rate again. The formats that need it are
+     * offered again from the next HDMI connection on, as IModule's ports only change then.
+     */
+    void resetHbr();
+    /**
+     * Opens the PCM device of the HDMI head `key` (EndpointStatus.key) with each IEC 61937
+     * configuration (2 channels at 48 and 192 kHz, 8 channels at 192 kHz) and the matching
+     * non-audio channel status, and closes it again: nothing is played. Tells what the hardware
+     * accepts, independently of the sink. Fails with EX_ILLEGAL_ARGUMENT for a key that is no
+     * HDMI output or a head without passthrough controls, and with EX_ILLEGAL_STATE while a
+     * stream holds the device.
+     */
+    PassthroughProbe[] probeHdmi(String key);
 }
