@@ -45,7 +45,10 @@ Java only appears as generated AIDL code.
   `viewModelScope` / `lifecycleScope`. A `BroadcastReceiver` that has work
   to do uses `goAsync()` and a worker thread.
 - **Failures degrade, never crash.** The HAL may be restarting or absent:
-  its owner class catches `RemoteException` and `SecurityException` and
+  its owner class catches `RemoteException`, `SecurityException` and the
+  runtime exceptions Binder turns the HAL's error codes into
+  (`IllegalArgumentException`, `IllegalStateException`,
+  `ServiceSpecificException`, ...; `Parcel.createExceptionOrNull()`), and
   returns null, and the page shows less. Code that runs inside another
   process's call (a `ContentProvider` serving a Settings tile) must not
   throw at all.
