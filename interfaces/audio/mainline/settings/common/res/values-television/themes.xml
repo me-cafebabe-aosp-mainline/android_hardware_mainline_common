@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- Dark on a TV whatever the night mode, like TvSettings, which opens
+         these pages. -->
+    <style name="Theme.MainlineAudio" parent="Theme.Material3.DynamicColors.Dark.NoActionBar" />
+</resources>

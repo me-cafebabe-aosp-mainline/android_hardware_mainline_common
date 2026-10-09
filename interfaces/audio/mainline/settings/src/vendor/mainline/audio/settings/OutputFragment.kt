@@ -139,14 +139,18 @@ class OutputFragment : SettingsFragment() {
             val category = screen.addCategory("speaker/$channel", getString(speaker.titleRes))
             category.addPreference(
                 slider("speaker/$channel/level", R.string.output_level, LEVEL_MIN, LEVEL_MAX) {
-                    levelsDb[channel] = it.toFloat()
-                }
+                        levelsDb[channel] = it.toFloat()
+                    }
+                    .apply { seekBarIncrement = LEVEL_STEP }
             )
             category.addPreference(
                 slider("speaker/$channel/delay", R.string.output_delay, 0, DELAY_MAX_TENTHS) {
                         delaysMs[channel] = it / 10f
                     }
-                    .apply { showSeekBarValue = false }
+                    .apply {
+                        showSeekBarValue = false
+                        seekBarIncrement = DELAY_STEP_TENTHS
+                    }
             )
             category.addPreference(
                 Preference(context).apply {
@@ -298,6 +302,11 @@ class OutputFragment : SettingsFragment() {
         private const val LEVEL_MIN = -30
         private const val LEVEL_MAX = 10
         private const val DELAY_MAX_TENTHS = 200
+
+        // What one press of a remote's left / right key changes (by default a twentieth of the
+        // range: 2 dB, 1 ms).
+        private const val LEVEL_STEP = 1
+        private const val DELAY_STEP_TENTHS = 5
 
         private val LAYOUTS =
             listOf(

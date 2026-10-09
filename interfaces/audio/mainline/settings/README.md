@@ -86,6 +86,11 @@ Advanced; each opens that page on its own, and Back returns to TvSettings.
 TvSettings shows the entry only while the provider answers, so the overlay
 does nothing without the app, and a TvSettings without the slot ignores it.
 
+On a TV (`UI_MODE_TYPE_TELEVISION`) the pages use a dark theme and have no
+Up button, which would take the first focus from the list; the remote's
+Back key goes back. Sliders move with left / right, levels by 1 dB and
+delays by 0.5 ms a press.
+
 ## How it fits together
 
 | Piece | Where |
