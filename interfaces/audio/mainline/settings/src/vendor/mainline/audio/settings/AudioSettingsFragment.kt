@@ -27,38 +27,16 @@ class AudioSettingsFragment : SettingsFragment() {
                 setTitle(R.string.hardware_title)
             }
         addPreference(category)
-        category.addPreference(
-            Preference(context).apply {
-                key = "$KEY_HARDWARE/diagnostics"
-                setTitle(R.string.diagnostics_title)
-                setSummary(R.string.diagnostics_summary)
-                fragment = DiagnosticsFragment::class.java.name
-            }
-        )
-        category.addPreference(
-            Preference(context).apply {
-                key = "$KEY_HARDWARE/speakers"
-                setTitle(R.string.speakers_title)
-                setSummary(R.string.speakers_summary)
-                fragment = SpeakersFragment::class.java.name
-            }
-        )
-        category.addPreference(
-            Preference(context).apply {
-                key = "$KEY_HARDWARE/mixer"
-                setTitle(R.string.mixer_title)
-                setSummary(R.string.mixer_summary)
-                fragment = MixerFragment::class.java.name
-            }
-        )
-        category.addPreference(
-            Preference(context).apply {
-                key = "$KEY_HARDWARE/settings"
-                setTitle(R.string.settings_page_title)
-                setSummary(R.string.settings_page_summary)
-                fragment = HalSettingsFragment::class.java.name
-            }
-        )
+        for (page in HardwarePage.entries) {
+            category.addPreference(
+                Preference(context).apply {
+                    key = "$KEY_HARDWARE/${page.key}"
+                    setTitle(page.titleRes)
+                    setSummary(page.summaryRes)
+                    fragment = page.fragment.name
+                }
+            )
+        }
     }
 
     private companion object {
