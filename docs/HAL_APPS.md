@@ -155,3 +155,36 @@ implements this.
   `com.android.settings.summary_uri`. Settings does not catch every
   exception the provider throws, so it must not throw: a failing summary
   can crash Settings.
+
+## Android TV
+
+TvSettings injects no tiles. What it offers instead are empty slots: slice
+preferences whose URI and title are overlayable strings
+(`packages/apps/TvSettings/Settings/res/values/overridable_strings.xml`),
+shown only while a provider answers for the URI. Display & sound has one
+for audio (`default_audio_output_settings_slice_uri`); look for a slot on
+the screen the HAL belongs to before anything else.
+
+- Fill the slot with a vendor RRO for `com.android.tv.settings` that sets
+  only those strings, installed when `PRODUCT_IS_ATV` is true. Never overlay
+  a TvSettings layout or preference XML: the copy would have to follow
+  every TvSettings release. Avoid the partner customization APK
+  (`com.tv.settings.action.PARTNER_CUSTOMIZATION`): TvSettings uses the
+  first one it finds, and it must list every preference of the screen it
+  changes.
+- Serve the slice from the app with the framework's `android.app.slice`
+  API. TvSettings' own slice library (`TvSliceLib`) builds against the
+  platform and can not go into an APEX; TvSettings converts a framework
+  `Slice` itself. Build rows in the layout its `SlicePreferenceUtil`
+  reads; a row with a `PendingIntent` (`SUBTYPE_INTENT`) opens a page of
+  the app.
+- Pass `android.permission.MANAGE_SLICE_PERMISSIONS` to the
+  `SliceProvider` constructor: a signature permission TvSettings holds, so
+  it gets the slice and other apps get the framework's permission request.
+- `onBindSlice()` runs under a StrictMode policy that kills the process on
+  disk reads: no HAL calls or files there.
+- The app's pages are used with a remote: give them a `values-television`
+  theme, no Up button, and slider steps that suit a key press.
+
+`interfaces/audio/mainline/settings/` (`TvSliceProvider.kt`, `tv/`)
+implements this.

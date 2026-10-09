@@ -39,7 +39,8 @@ have to read what's relevant to the task at hand:
 - `docs/INITIAL_IMPLEMENTATION_GUIDELINES.md` — shared requirements,
   references, and guidelines for bringing up a brand-new component.
 - `docs/HAL_APPS.md` — a settings app and control interface for a HAL:
-  APEX packaging, permissions, SELinux, interface stability, state.
+  APEX packaging, permissions, SELinux, interface stability, state,
+  Android TV.
 - `docs/WIRING_A_HAL.md` — how a HAL here gets selected by device
   trees through `device/mainline/common/optional/`.
 - `docs/REVIEW.md` — the SOP for reviewing a contributed commit, whether
