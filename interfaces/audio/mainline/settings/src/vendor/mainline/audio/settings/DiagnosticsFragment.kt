@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import vendor.mainline.audio.EndpointStatus
 import vendor.mainline.audio.settings.common.SettingsFragment
@@ -34,7 +35,8 @@ class DiagnosticsFragment : SettingsFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.refresh()
-                viewModel.state.collect(::render)
+                launch { viewModel.state.collect(::render) }
+                launch { viewModel.probe.collect { it?.let(::showProbe) } }
             }
         }
     }
@@ -78,6 +80,13 @@ class DiagnosticsFragment : SettingsFragment() {
                 screen.addFooter(KEY_FOOTER, R.string.hal_unavailable)
             is DiagnosticsViewModel.State.Loaded -> {
                 val status = state.status
+                val fast =
+                    PreferenceCategory(context).apply {
+                        key = KEY_FAST
+                        setTitle(R.string.fast_title)
+                    }
+                screen.addPreference(fast)
+                fast.addPreference(info("$KEY_FAST/info", text.fastSummary(status)))
                 for (card in status.cards) {
                     val category =
                         PreferenceCategory(context).apply {
@@ -88,7 +97,20 @@ class DiagnosticsFragment : SettingsFragment() {
                     category.addPreference(info("card/${card.index}/info", text.cardSummary(card)))
                     for (endpoint in status.endpoints.filter { it.card == card.index }) {
                         category.addPreference(endpoint(endpoint, text))
+                        hdmiActions(endpoint).forEach { category.addPreference(it) }
                     }
+                }
+                state.android?.let { android ->
+                    val category =
+                        PreferenceCategory(context).apply {
+                            key = KEY_ANDROID
+                            setTitle(R.string.android_title)
+                        }
+                    screen.addPreference(category)
+                    category.addPreference(info("$KEY_ANDROID/info", text.androidSummary(android)))
+                    category.addPreference(
+                        info("$KEY_ANDROID/note", getString(R.string.android_note))
+                    )
                 }
                 val cardless = status.endpoints.filter { it.nullDevice }
                 if (cardless.isNotEmpty()) {
@@ -113,6 +135,55 @@ class DiagnosticsFragment : SettingsFragment() {
                     endpoint.name,
                 )
         }
+
+    /** Test and high bit rate retry for an HDMI head the HAL can pass through to. */
+    private fun hdmiActions(endpoint: EndpointStatus): List<Preference> {
+        val sink = endpoint.hdmi ?: return emptyList()
+        if (!sink.passthroughPossible || endpoint.input) return emptyList()
+        val context = requireContext()
+        val actions = mutableListOf<Preference>()
+        actions +=
+            Preference(context).apply {
+                key = "endpoint/${endpoint.key}/probe"
+                setTitle(R.string.hdmi_probe)
+                setSummary(R.string.hdmi_probe_summary)
+                isIconSpaceReserved = false
+                setOnPreferenceClickListener {
+                    viewModel.probe(endpoint.key, endpoint.name)
+                    true
+                }
+            }
+        if (sink.hbrSource == HBR_SOURCE_FAILURE) {
+            actions +=
+                Preference(context).apply {
+                    key = "endpoint/${endpoint.key}/hbr"
+                    setTitle(R.string.hdmi_retry_hbr)
+                    setSummary(R.string.hdmi_retry_hbr_summary)
+                    isIconSpaceReserved = false
+                    setOnPreferenceClickListener {
+                        viewModel.resetHbr()
+                        true
+                    }
+                }
+        }
+        return actions
+    }
+
+    private fun showProbe(probe: DiagnosticsViewModel.Probe) {
+        viewModel.probeShown()
+        val message =
+            when (val outcome = probe.outcome) {
+                is HalControl.ProbeOutcome.Done ->
+                    StatusText(requireContext()).probeLines(outcome.results)
+                HalControl.ProbeOutcome.Busy -> getString(R.string.probe_busy)
+                HalControl.ProbeOutcome.Unavailable -> getString(R.string.probe_unavailable)
+            }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.probe_title, probe.name))
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
 
     private fun info(key: String, summary: String) =
         Preference(requireContext()).apply {
@@ -152,5 +223,10 @@ class DiagnosticsFragment : SettingsFragment() {
     private companion object {
         const val KEY_REPORT = "report"
         const val KEY_FOOTER = "footer"
+        const val KEY_FAST = "fast"
+        const val KEY_ANDROID = "android"
+
+        /** HdmiSinkStatus.hbrSource of a head that refused high bit rate. */
+        const val HBR_SOURCE_FAILURE = "failure"
     }
 }

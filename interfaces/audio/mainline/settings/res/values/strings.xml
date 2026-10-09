@@ -57,6 +57,72 @@
     <!-- e.g. "Passthrough: ac3 (...), from ELD" -->
     <string name="hdmi_passthrough">Passthrough: <xliff:g id="formats">%1$s</xliff:g>, from <xliff:g id="source">%2$s</xliff:g></string>
     <string name="hdmi_hbr">High bit rate: <xliff:g id="hbr">%1$s</xliff:g></string>
+    <string name="hbr_supported">supported</string>
+    <string name="hbr_unsupported">not supported</string>
+    <string name="hbr_undetectable">off, the driver can not tell</string>
+    <!-- e.g. "High bit rate: supported, as the hda driver quirk says" -->
+    <string name="hdmi_hbr_driver">High bit rate: <xliff:g id="hbr">%1$s</xliff:g>, as the <xliff:g id="quirk">%2$s</xliff:g> driver quirk says</string>
+    <!-- e.g. "High bit rate: supported, by the card setting" -->
+    <string name="hdmi_hbr_setting">High bit rate: <xliff:g id="hbr">%1$s</xliff:g>, by the card setting</string>
+    <!-- e.g. "High bit rate: off since this output refused it: 8 channels at 192000 Hz not offered by the device" -->
+    <string name="hdmi_hbr_failure">High bit rate: off since this output refused it: <xliff:g id="reason">%1$s</xliff:g></string>
+    <!-- e.g. "Last passthrough: eac3, 48 kHz, sent as 2 channels at 192 kHz (10/9/2026, 13:52)" -->
+    <string name="attempt_ok">Last passthrough: <xliff:g id="format">%1$s</xliff:g>, <xliff:g id="rate">%2$s</xliff:g> kHz, sent as <xliff:g id="channels">%3$d</xliff:g> channels at <xliff:g id="pcm_rate">%4$s</xliff:g> kHz (<xliff:g id="time">%5$s</xliff:g>)</string>
+    <!-- e.g. "Last passthrough: truehd, 48 kHz, failed at hw_params: Invalid argument (-22) (10/9/2026, 13:52)" -->
+    <string name="attempt_failed">Last passthrough: <xliff:g id="format">%1$s</xliff:g>, <xliff:g id="rate">%2$s</xliff:g> kHz, failed at <xliff:g id="step">%3$s</xliff:g>: <xliff:g id="error">%4$s</xliff:g> (<xliff:g id="time">%5$s</xliff:g>)</string>
+    <!-- e.g. "Last passthrough: truehd, 48 kHz, failed: this output can not carry it (10/9/2026, 13:52)" -->
+    <string name="attempt_failed_no_error">Last passthrough: <xliff:g id="format">%1$s</xliff:g>, <xliff:g id="rate">%2$s</xliff:g> kHz, failed: <xliff:g id="step">%3$s</xliff:g> (<xliff:g id="time">%4$s</xliff:g>)</string>
+    <string name="step_format">this output can not carry it</string>
+    <string name="step_packer">no packer for it</string>
+    <string name="step_channel_status">setting the channel status</string>
+    <!-- An errno, e.g. "Invalid argument (-22)" -->
+    <string name="error_errno"><xliff:g id="text">%1$s</xliff:g> (<xliff:g id="errno">%2$d</xliff:g>)</string>
+    <!-- e.g. "Silenced by the direct stream: mixed output (mix handle 13)" -->
+    <string name="endpoint_silenced">Silenced by the direct stream: <xliff:g id="streams">%1$s</xliff:g></string>
+    <!-- e.g. "Low latency stream: 480 frame period for 480 frame bursts" -->
+    <string name="fast_period">Low latency stream: <xliff:g id="period">%1$d</xliff:g> frame period for <xliff:g id="burst">%2$d</xliff:g> frame bursts</string>
+    <!-- e.g. "Low latency stream: 960 frame period for 480 frame bursts, longer than a burst: the fast mixer underruns" -->
+    <string name="fast_period_long">Low latency stream: <xliff:g id="period">%1$d</xliff:g> frame period for <xliff:g id="burst">%2$d</xliff:g> frame bursts, longer than a burst: the fast mixer underruns</string>
+    <string name="hdmi_probe">Test this HDMI output</string>
+    <string name="hdmi_probe_summary">Opens it with each passthrough configuration, without playing anything</string>
+    <string name="hdmi_retry_hbr">Retry high bit rate</string>
+    <string name="hdmi_retry_hbr_summary">Forget the refusal. Formats that need it are offered again from the next HDMI connection on.</string>
+    <!-- e.g. "HDMI test: HDMI" -->
+    <string name="probe_title">HDMI test: <xliff:g id="name">%1$s</xliff:g></string>
+    <!-- e.g. "2 channels at 48 kHz" -->
+    <string name="probe_config"><xliff:g id="channels">%1$d</xliff:g> channels at <xliff:g id="rate">%2$s</xliff:g> kHz</string>
+    <!-- e.g. "8 channels at 192 kHz (high bit rate)" -->
+    <string name="probe_config_hbr"><xliff:g id="channels">%1$d</xliff:g> channels at <xliff:g id="rate">%2$s</xliff:g> kHz (high bit rate)</string>
+    <!-- e.g. "2 channels at 48 kHz: accepted" -->
+    <string name="probe_accepted"><xliff:g id="config">%1$s</xliff:g>: accepted</string>
+    <!-- e.g. "8 channels at 192 kHz (high bit rate): refused at hw_params: Invalid argument (-22)" -->
+    <string name="probe_refused"><xliff:g id="config">%1$s</xliff:g>: refused at <xliff:g id="step">%2$s</xliff:g>: <xliff:g id="error">%3$s</xliff:g></string>
+    <!-- e.g. "2 channels at 48 kHz: refused: setting the channel status" -->
+    <string name="probe_refused_no_error"><xliff:g id="config">%1$s</xliff:g>: refused: <xliff:g id="step">%2$s</xliff:g></string>
+    <string name="probe_busy">Something plays to this output. Stop playback, wait a few seconds and try again.</string>
+    <string name="probe_unavailable">This output can not be tested.</string>
+    <string name="fast_title">Low latency output</string>
+    <string name="fast_off">Off: the low latency setting is 0.</string>
+    <!-- e.g. "On, 10 ms: a 480 frame buffer, below the 960 frame mixer period (at 48 kHz)" -->
+    <string name="fast_active">On, <xliff:g id="ms">%1$d</xliff:g> ms: a <xliff:g id="buffer">%2$d</xliff:g> frame buffer, below the <xliff:g id="mixer">%3$d</xliff:g> frame mixer period (at 48 kHz)</string>
+    <!-- e.g. "Not active: 20 ms gives a 1024 frame buffer, not below the 960 frame mixer period (at 48 kHz). Try 10 ms or less." -->
+    <string name="fast_inactive">Not active: <xliff:g id="ms">%1$d</xliff:g> ms gives a <xliff:g id="buffer">%2$d</xliff:g> frame buffer, not below the <xliff:g id="mixer">%3$d</xliff:g> frame mixer period (at 48 kHz). Try 10 ms or less.</string>
+    <string name="android_title">HDMI passthrough in Android</string>
+    <!-- e.g. "Surround sound setting: Automatic" -->
+    <string name="android_surround_mode">Surround sound setting: <xliff:g id="mode">%1$s</xliff:g></string>
+    <string name="surround_auto">Automatic</string>
+    <string name="surround_never">Never</string>
+    <string name="surround_always">Always</string>
+    <string name="surround_manual">Manual</string>
+    <string name="surround_unknown">Unknown</string>
+    <!-- e.g. "Formats Android knows for the HDMI device: ac3, eac3, dts" -->
+    <string name="android_hdmi_formats">Formats Android knows for the HDMI device: <xliff:g id="formats">%1$s</xliff:g></string>
+    <string name="android_no_hdmi">No HDMI device connected</string>
+    <!-- e.g. "Offered to apps for the current output: ac3, eac3" -->
+    <string name="android_bitstream">Offered to apps for the current output: <xliff:g id="formats">%1$s</xliff:g></string>
+    <!-- e.g. "Not offered: truehd, dtshd-ma" -->
+    <string name="android_no_bitstream">Not offered: <xliff:g id="formats">%1$s</xliff:g></string>
+    <string name="android_note">Formats the HAL offers for HDMI but Android does not offer to apps were left out by the audio policy or the surround sound setting. "The current output" is where media plays right now.</string>
     <!-- e.g. "44.1, 48 kHz" -->
     <string name="rates_khz"><xliff:g id="rates">%1$s</xliff:g> kHz</string>
     <string name="none">none</string>

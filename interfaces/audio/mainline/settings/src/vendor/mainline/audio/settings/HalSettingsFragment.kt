@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
+import androidx.preference.MultiSelectListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceGroup
@@ -136,8 +137,18 @@ class HalSettingsFragment : SettingsFragment() {
         val target =
             if (edited) state.edits[setting.key] ?: setting.defaultValue
             else setting.stored ?: setting.defaultValue
+        val choices = if (setting.key == KEY_FORMATS) state.passthroughFormats else emptyList()
         val preference =
-            if (setting.type == Setting.TYPE_BOOLEAN) {
+            if (choices.isNotEmpty()) {
+                // A list of format names: pick from what this build can pack.
+                MultiSelectListPreference(context).apply {
+                    entries = choices.toTypedArray()
+                    entryValues = choices.toTypedArray()
+                    // No dialog message: the dialog would show it instead of the
+                    // list. Nothing ticked means "use the ELD".
+                    values = target.split(',').map { it.trim() }.filter { it in choices }.toSet()
+                }
+            } else if (setting.type == Setting.TYPE_BOOLEAN) {
                 ListPreference(context).apply {
                     entries =
                         arrayOf(
@@ -199,7 +210,12 @@ class HalSettingsFragment : SettingsFragment() {
                     }
                     .joinToString(" · ")
             setOnPreferenceChangeListener { _, newValue ->
-                val text = (newValue as? String)?.trim().orEmpty()
+                val text =
+                    if (newValue is Set<*>) {
+                        choices.filter { it in newValue }.joinToString(",")
+                    } else {
+                        (newValue as? String)?.trim().orEmpty()
+                    }
                 viewModel.edit(setting.key, text.takeUnless { it.isEmpty() || it == VALUE_DEFAULT })
                 false
             }
@@ -251,6 +267,7 @@ class HalSettingsFragment : SettingsFragment() {
         const val KEY_ACTIONS = "actions"
         const val KEY_FOOTER = "footer"
         const val VALUE_DEFAULT = "default"
+        const val KEY_FORMATS = "hdmi.passthrough_formats"
 
         val GROUPS =
             listOf(

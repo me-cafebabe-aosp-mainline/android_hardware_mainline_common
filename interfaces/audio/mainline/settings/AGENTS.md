@@ -28,7 +28,9 @@ This directory (`MainlineAudioSettings`, APEX app):
 - `AudioSettingsActivity.kt`, `AudioSettingsFragment.kt`: the entry page.
 - `AudioDevices.kt`: the HAL endpoint behind an `AudioDeviceInfo`.
 - `DiagnosticsFragment.kt`, `DiagnosticsViewModel.kt`, `StatusText.kt`:
-  Hardware › Sound cards, the report.
+  Hardware › Sound cards, the report, the HDMI test and high bit rate retry.
+- `AndroidSurround.kt`: what Android makes of the passthrough formats
+  (public `AudioManager` / `AudioDeviceInfo` APIs only).
 - `SpeakersFragment.kt`, `OutputFragment.kt`, `OutputViewModel.kt`:
   Hardware › Speakers; `Speakers` mirrors the HAL's speaker order per layout.
 - `MixerFragment.kt`, `MixerViewModel.kt`: Hardware › Mixer.
@@ -72,6 +74,15 @@ This directory (`MainlineAudioSettings`, APEX app):
 - `frameworks/base/services/core/java/com/android/server/audio/`:
   `AudioDeviceBroker`, `AudioDeviceInventory` (how preferences are kept).
 - `frameworks/base/packages/SettingsLib/Tile/`: the Settings tile protocol.
+- `AudioManager.getDirectPlaybackSupport()`, `getEncodedSurroundMode()` and
+  `AudioDeviceInfo.getEncodings()`: the public view of passthrough. Do not
+  use `getReportedSurroundFormats()` / `getSurroundFormats()`: they are
+  `@TestApi`, hidden from a vendor app.
+- `IControl` errors reach Java as exceptions (`EX_ILLEGAL_STATE` as
+  `IllegalStateException`, `EX_ILLEGAL_ARGUMENT` as
+  `IllegalArgumentException`, `Parcel.java`), which `HalControl.call()` does
+  not catch: a call that can fail that way catches them itself
+  (`HalControl.probeHdmi()`).
 - `frameworks/base/services/permission/java/com/android/server/permission/access/permission/AppIdPermissionPolicy.kt`:
   which allowlist applies to an APK in an APEX, and why a vendor app gets no
   privileged permission without `vendorPrivileged`

@@ -37,10 +37,19 @@ choice in device-protected storage and applies it again on
 
 - **Sound cards:** what the HAL found and uses: per card the
   driver, the UCM verb and its enabled devices; per endpoint its role, PCM
-  and UCM device, capabilities, jack state, the streams using it and, for
-  HDMI heads, the sink's passthrough formats. **Copy report** / **Share
-  report** hand out the HAL's dumpsys text plus `/proc/asound` for bug
-  reports.
+  and UCM device, capabilities, jack state, the streams using it (and the
+  ones a direct stream silences), the period the last low latency stream
+  got and, for HDMI heads, the sink's passthrough formats, what decided high
+  bit rate and how the last passthrough stream went. **Test this HDMI
+  output** opens an idle HDMI output with each passthrough configuration
+  without playing anything and lists what it accepts; **Retry high bit
+  rate** forgets a refusal. **Low latency output** says whether
+  `fast_latency_ms` got the primary output a FastMixer. **HDMI passthrough in
+  Android** shows what Android itself makes of the formats (surround sound
+  setting, formats it knows for the HDMI device, formats it offers apps for
+  the current output), from public `AudioManager` APIs. **Copy report** /
+  **Share report** hand out the HAL's dumpsys text plus `/proc/asound`
+  (cards, PCMs, HDMI ELDs, HDA codecs) for bug reports.
 
 - **Speakers:** per output the speaker layout (stereo, quad, 5.1,
   7.1 or automatic), speaker fill, swap left / right, mono, subwoofer and
@@ -59,7 +68,8 @@ choice in device-protected storage and applies it again on
   global and per card. Edits collect until **Apply**, which restarts the HAL
   with them on trial; a dialog then asks to keep them, and the HAL reverts on
   its own after 30 seconds or when it fails to start with them. **Reset to
-  device defaults** drops everything set here.
+  device defaults** drops everything set here. Passthrough formats are
+  picked from the ones this HAL build can pack.
 
 ## How it fits together
 

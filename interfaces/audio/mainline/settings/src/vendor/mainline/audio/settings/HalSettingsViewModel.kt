@@ -32,6 +32,8 @@ class HalSettingsViewModel : ViewModel() {
         val trial: TrialStatus,
         /** The HAL restarts: no edits, no trial decision until it is back. */
         val restarting: Boolean,
+        /** Passthrough formats this HAL build can pack, for hdmi.passthrough_formats. */
+        val passthroughFormats: List<String> = emptyList(),
     ) {
         val hasStored: Boolean
             get() = settings.any { it.stored != null }
@@ -133,7 +135,14 @@ class HalSettingsViewModel : ViewModel() {
         val settings = HalControl.call { it.settings } ?: return null
         val status = HalControl.status() ?: return null
         val trial = HalControl.call { it.trialStatus } ?: return null
-        return State(settings.toList(), status.cards.toList(), edits, trial, restarting)
+        return State(
+            settings.toList(),
+            status.cards.toList(),
+            edits,
+            trial,
+            restarting,
+            status.passthroughFormats.orEmpty().toList(),
+        )
     }
 
     private companion object {

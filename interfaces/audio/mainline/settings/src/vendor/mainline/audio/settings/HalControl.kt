@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import vendor.mainline.audio.IControl
+import vendor.mainline.audio.PassthroughProbe
 import vendor.mainline.audio.Status
 
 /**
@@ -48,6 +49,32 @@ object HalControl {
     }
 
     suspend fun status(): Status? = call { it.status }
+
+    /** What [probeHdmi] found. */
+    sealed interface ProbeOutcome {
+        data class Done(val results: List<PassthroughProbe>) : ProbeOutcome
+
+        /** A stream holds the device; try again once nothing plays to it. */
+        data object Busy : ProbeOutcome
+
+        /** No HAL, or the head has no passthrough controls. */
+        data object Unavailable : ProbeOutcome
+    }
+
+    /** Asks the HAL which IEC 61937 configurations the HDMI head [key] accepts. */
+    suspend fun probeHdmi(key: String): ProbeOutcome =
+        call {
+            try {
+                ProbeOutcome.Done(it.probeHdmi(key).toList())
+            } catch (e: IllegalStateException) {
+                ProbeOutcome.Busy
+            } catch (e: IllegalArgumentException) {
+                ProbeOutcome.Unavailable
+            }
+        } ?: ProbeOutcome.Unavailable
+
+    /** Forgets the HDMI heads' high bit rate refusals; false when the HAL did not answer. */
+    suspend fun resetHbr(): Boolean = call { it.resetHbr() } != null
 
     private suspend fun connect(): IControl? {
         if (!withContext(Dispatchers.IO) { isDeclared }) return null

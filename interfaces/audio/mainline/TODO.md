@@ -22,7 +22,7 @@ here yet.
 | FAST primary output (`fast_latency_ms`): FastMixer, fast tracks | not verified |
 | VTS (`VtsHalAudioCoreModuleTargetTest`), in particular the dynamic `hdmi passthrough` port and the probe answer in `setAudioPortConfig()` | not run |
 | FFmpeg packer: flush / seek (the packer is rebuilt), positions for A/V sync | not verified |
-| `IControl` version 2 (HDMI / FAST diagnostics, `probeHdmi()`, `resetHbr()`) | not built; the API dump needs `m vendor.mainline.audio-update-api` |
+| `IControl` version 2 (HDMI / FAST diagnostics, `probeHdmi()`, `resetHbr()`) and the settings app pages using it | not built; the API dump needs `m vendor.mainline.audio-update-api` |
 
 ## Known issues
 
