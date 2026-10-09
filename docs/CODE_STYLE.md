@@ -137,3 +137,18 @@ Before editing a file, run the formatter on it unmodified first:
 
 Keep the relevant `README.md` (including any per-backend/per-module README)
 and `AGENTS.md` in sync with behavior, property, or ABI changes you make.
+
+### Section names
+
+Name a section with a short noun phrase that says what it is about, not
+with a sentence or a description of why it exists. This applies to the
+section comments in code and configuration files, such as `.mk`, `.rc`,
+SELinux policy (`.te`, `file_contexts`, ...) and source files. It does not
+apply to documentation files.
+
+- Good: `# Graphics (Mesa)`, `# Modem`, `# Audio`.
+- Bad: `# Graphics, detected by the quirks service`, `# Set the GLES
+  version for Mesa`.
+
+Put the explanation in the comments under the section, and keep the name
+stable so that sections can be found and sorted.
