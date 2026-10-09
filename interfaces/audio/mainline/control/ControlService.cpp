@@ -266,7 +266,7 @@ HdmiSinkStatus ControlService::MakeHdmiSinkStatus(const routing::Endpoint& head)
     status.source = passthrough::ToString(sink.source);
     status.monitorName = sink.monitor_name;
     status.maxPcmChannels = static_cast<int32_t>(sink.max_pcm_channels);
-    status.hbr = passthrough::ToString(control->Hbr());
+    status.hbr = passthrough::ToString(control->Hbr().support);
     for (const auto& [format, caps] : sink.formats) {
         SinkFormat entry{.name = passthrough::ToString(format),
                          .maxChannels = static_cast<int32_t>(caps.max_channels)};

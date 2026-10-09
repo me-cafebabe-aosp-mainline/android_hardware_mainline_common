@@ -30,7 +30,9 @@ here yet.
    the HDA HDMI pin check. The kernel narrows the PCM to the ELD, which
    announces 8 channels and 192 kHz, so the limit is the HDA codec /
    controller, the Tegra display side, or the period / buffer sizes of
-   `PassthroughSink::Open()`. Data asked from the tester: Tegra SoC,
+   `PassthroughSink::Open()`. The sink now retries with the driver's own
+   sizes, and logs whether the device offers 8 channels at 192 kHz at all:
+   retest with a build that has it. Data asked from the tester: Tegra SoC,
    `/proc/asound/card0/eld#*`, `/proc/asound/card0/codec#*` (HBR, rates,
    channels; both are in the settings app's report now),
    `tinypcminfo -D 0 -d 3`, `dmesg` (hda / hdmi / sor). Also
@@ -42,31 +44,20 @@ here yet.
    first real test of. Data asked: `dumpsys media.audio_policy`, logcat for
    `CompletePassthroughProbe|UpdatePassthroughMixPort|updateAudioProfiles`,
    the Surround sound mode.
-3. After one refused high bit rate open, the head never offers high bit
-   rate again until the HAL restarts (`HbrFailures`), and any `-EINVAL`
-   counts, including one caused by the buffer sizes. README claims it only
-   lasts until the next connection, which is wrong.
 
 ## TODO
 
-Promised to the tester:
-
-1. Known issue 3: on a refused strict open, retry with relaxed period /
-   buffer sizes before suspecting high bit rate; record an HBR failure only
-   when the device refuses 8 channels at 192 kHz itself; forget failures
-   when HDMI reconnects or the sink changes; fix the README sentence.
-
 Waiting for data:
 
-2. Known issues 1 and 2, once the tester's logs arrive.
+1. Known issues 1 and 2, once the tester's logs arrive.
 
 Verification:
 
-3. The "not verified" / "not run" rows above, VTS first.
+2. The "not verified" / "not run" rows above, VTS first.
 
 Waiting for a maintainer decision:
 
-4. AAC (ADTS framing) passthrough through FFmpeg, and plain DTS through
+3. AAC (ADTS framing) passthrough through FFmpeg, and plain DTS through
    FFmpeg when `ffmpeg_passthrough` is set (adds little endian and 14-bit
    DTS). Take the transport parameters from
    `external/ffmpeg/libavformat/spdifenc.c`, never from memory
