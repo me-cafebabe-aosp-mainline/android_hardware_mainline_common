@@ -30,4 +30,7 @@ parcelable HdmiSinkStatus {
   int maxPcmChannels;
   vendor.mainline.audio.SinkFormat[] formats;
   String hbr;
+  String hbrSource = "";
+  String hbrDetail = "";
+  @nullable vendor.mainline.audio.PassthroughAttempt lastAttempt;
 }

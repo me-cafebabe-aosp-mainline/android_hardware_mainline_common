@@ -94,7 +94,7 @@ domain in the device's vendor policy (`device/mainline/common/sepolicy/vendor`):
     against `aidl_api/<name>/current/`: run `m <name>-update-api` after
     every change of the `.aidl` files.
   - Freeze it (`m <name>-freeze-api`) before it ships. `vendor.mainline.audio`
-    and `vendor.mainline.sensors` are frozen at version 1.
+    is frozen at version 2, `vendor.mainline.sensors` at version 1.
   - To change a frozen interface: set `frozen: false`, edit, run
     `m <name>-update-api`. That makes a next version (V2) the latest, so in
     the same change bump the HAL's VINTF fragment to that version, widen

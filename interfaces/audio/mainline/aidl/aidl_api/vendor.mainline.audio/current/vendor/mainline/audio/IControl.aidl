@@ -38,4 +38,6 @@ interface IControl {
   void setOutputSettings(String key, in vendor.mainline.audio.OutputSettings settings);
   void resetOutputSettings(String key);
   void playTestTone(String key, int channel, int durationMs);
+  void resetHbr();
+  vendor.mainline.audio.PassthroughProbe[] probeHdmi(String key);
 }

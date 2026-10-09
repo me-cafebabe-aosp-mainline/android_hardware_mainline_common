@@ -25,4 +25,9 @@ package vendor.mainline.audio;
 parcelable Status {
   vendor.mainline.audio.CardStatus[] cards;
   vendor.mainline.audio.EndpointStatus[] endpoints;
+  int fastLatencyMs;
+  boolean fastActive;
+  int fastBufferFrames;
+  int normalMixerFrames;
+  String[] passthroughFormats = {};
 }

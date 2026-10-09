@@ -45,6 +45,9 @@ parcelable EndpointStatus {
   String pcmOwner;
   int jack;
   @nullable vendor.mainline.audio.HdmiSinkStatus hdmi;
+  String[] silencedStreams = {};
+  int fastBurstFrames;
+  int fastPeriodFrames;
   const int JACK_UNKNOWN = (-1) /* -1 */;
   const int JACK_UNPLUGGED = 0;
   const int JACK_PLUGGED = 1;
