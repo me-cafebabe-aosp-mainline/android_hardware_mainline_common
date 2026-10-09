@@ -101,6 +101,7 @@
     <string name="probe_refused_no_error"><xliff:g id="config">%1$s</xliff:g>: refused: <xliff:g id="step">%2$s</xliff:g></string>
     <string name="probe_busy">Something plays to this output. Stop playback, wait a few seconds and try again.</string>
     <string name="probe_unavailable">This output can not be tested.</string>
+    <string name="diagnostics_reset_hbr_failed">The audio HAL did not answer; nothing was reset.</string>
     <string name="fast_title">Low latency output</string>
     <string name="fast_off">Off: the low latency setting is 0.</string>
     <!-- e.g. "On, 10 ms: a 480 frame buffer, below the 960 frame mixer period (at 48 kHz)" -->
@@ -139,6 +140,8 @@
     <!-- e.g. "Channels: 50, 60" -->
     <string name="mixer_channels">Channels: <xliff:g id="values">%1$s</xliff:g></string>
     <string name="mixer_stored">Kept</string>
+    <string name="mixer_set_failed">The sound card did not take the change.</string>
+    <string name="mixer_forget_failed">The audio HAL could not forget the changes.</string>
 
     <!-- HAL settings -->
     <string name="settings_page_title">Advanced</string>
@@ -158,6 +161,10 @@
     <string name="settings_discard">Discard changes</string>
     <string name="settings_reset">Reset to device defaults</string>
     <string name="settings_reset_summary">Drops every setting made here and restarts the audio HAL</string>
+    <string name="settings_apply_failed">The audio HAL did not take the changes, nothing was applied. It refuses them while other new settings wait to be kept, or when it can not store them.</string>
+    <string name="settings_keep_failed">The audio HAL could not keep the new settings and goes back to the previous ones.</string>
+    <string name="settings_revert_failed">The audio HAL did not answer. It goes back to the previous settings on its own when the time is up.</string>
+    <string name="settings_reset_failed">The audio HAL could not drop the settings made here.</string>
     <!-- Choice of a boolean setting, e.g. "Default (On)" -->
     <string name="setting_default">Default (<xliff:g id="value">%1$s</xliff:g>)</string>
     <string name="setting_on">On</string>
@@ -241,5 +248,7 @@
     <string name="output_reset_summary">Plays everything as the apps send it again</string>
     <string name="output_footer">Changes apply right away. Delay the speakers closest to you by about 3 ms per metre they are closer than the farthest one.</string>
     <string name="output_auto_footer">Pick a speaker layout to set up each speaker.</string>
+    <string name="output_set_failed">The audio HAL did not take the change. This page shows what it applies.</string>
+    <string name="output_test_failed">The test tone could not be played on this output.</string>
 
 </resources>

@@ -14,10 +14,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import vendor.mainline.audio.EndpointStatus
@@ -35,6 +38,10 @@ class OutputViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _state = MutableStateFlow<State>(State.Loading)
     val state: StateFlow<State> = _state.asStateFlow()
+
+    private val _failures = Channel<Int>(Channel.BUFFERED)
+    /** String resources of the changes the HAL did not take, for the page to show once each. */
+    val failures: Flow<Int> = _failures.receiveAsFlow()
 
     private var key: String? = null
     private var applyJob: Job? = null
@@ -55,13 +62,23 @@ class OutputViewModel(application: Application) : AndroidViewModel(application) 
         val key = key ?: return
         // The latest change wins; a slider sends many.
         applyJob?.cancel()
-        applyJob = viewModelScope.launch { HalControl.call { it.setOutputSettings(key, settings) } }
+        applyJob =
+            viewModelScope.launch {
+                // Refused for values the output can not take (e.g. a layout with more speakers
+                // than it has channels): show what the HAL really applies instead of the edit.
+                if (HalControl.call { it.setOutputSettings(key, settings) } == null) {
+                    _failures.trySend(R.string.output_set_failed)
+                    _state.value = read(key) ?: State.Unavailable
+                }
+            }
     }
 
     fun reset() {
         val key = key ?: return
         viewModelScope.launch {
-            HalControl.call { it.resetOutputSettings(key) }
+            if (HalControl.call { it.resetOutputSettings(key) } == null) {
+                _failures.trySend(R.string.output_set_failed)
+            }
             _state.value = read(key) ?: State.Unavailable
         }
     }
@@ -79,7 +96,10 @@ class OutputViewModel(application: Application) : AndroidViewModel(application) 
                 val track = withContext(Dispatchers.IO) { silentTrack(loaded.endpoint) }
                 try {
                     track?.play()
-                    HalControl.call { it.playTestTone(key, channel, TONE_MS) }
+                    if (HalControl.call { it.playTestTone(key, channel, TONE_MS) } == null) {
+                        _failures.trySend(R.string.output_test_failed)
+                        return@launch
+                    }
                     delay(TONE_MS.toLong())
                 } finally {
                     track?.stop()

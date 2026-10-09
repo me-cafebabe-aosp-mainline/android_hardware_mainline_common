@@ -8,9 +8,12 @@ package vendor.mainline.audio.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import vendor.mainline.audio.CardStatus
 import vendor.mainline.audio.MixerControl
@@ -32,6 +35,10 @@ class MixerViewModel : ViewModel() {
 
     private var refreshJob: Job? = null
 
+    private val _failures = Channel<Int>(Channel.BUFFERED)
+    /** String resources of the changes the HAL did not take, for the page to show once each. */
+    val failures: Flow<Int> = _failures.receiveAsFlow()
+
     fun refresh() {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch { _state.value = load() }
@@ -40,7 +47,11 @@ class MixerViewModel : ViewModel() {
     /** Sets a control to [value] on every channel. */
     fun set(card: Int, control: MixerControl, value: Long) {
         viewModelScope.launch {
-            HalControl.call { it.setMixerControl(card, control.numid, longArrayOf(value)) }
+            // Refused for a control the card no longer has, or one the driver did not take. The
+            // refresh shows the value the control really has.
+            val set =
+                HalControl.call { it.setMixerControl(card, control.numid, longArrayOf(value)) }
+            if (set == null) _failures.trySend(R.string.mixer_set_failed)
             refresh()
         }
     }
@@ -48,7 +59,9 @@ class MixerViewModel : ViewModel() {
     /** Forgets what the user set on [card]; the values stay until the next restart. */
     fun forget(card: Int) {
         viewModelScope.launch {
-            HalControl.call { it.resetMixerControls(card) }
+            if (HalControl.call { it.resetMixerControls(card) } == null) {
+                _failures.trySend(R.string.mixer_forget_failed)
+            }
             refresh()
         }
     }

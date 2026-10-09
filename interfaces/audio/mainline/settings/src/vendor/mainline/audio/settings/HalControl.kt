@@ -7,6 +7,7 @@ package vendor.mainline.audio.settings
 
 import android.os.RemoteException
 import android.os.ServiceManager
+import android.os.ServiceSpecificException
 import android.util.Log
 import kotlin.concurrent.thread
 import kotlinx.coroutines.CompletableDeferred
@@ -32,7 +33,16 @@ object HalControl {
     val isDeclared: Boolean
         get() = ServiceManager.isDeclared(NAME)
 
-    /** Runs [block] on the service; null when it is not declared, does not come up, or fails. */
+    /**
+     * Runs [block] on the service; null when it is not declared, does not come up, or fails.
+     *
+     * The HAL reports a refused call as a Binder exception code, which arrives as a runtime
+     * exception (`Parcel.createExceptionOrNull()`): EX_ILLEGAL_ARGUMENT as
+     * [IllegalArgumentException], EX_ILLEGAL_STATE as [IllegalStateException], a service specific
+     * error as [ServiceSpecificException]. They become null too, so that a refusal degrades a page
+     * instead of crashing the app. A call that needs to tell them apart catches them inside [block]
+     * ([probeHdmi]).
+     */
     suspend fun <T> call(block: (IControl) -> T): T? {
         val control = connect() ?: return null
         return withContext(Dispatchers.IO) {
@@ -43,6 +53,18 @@ object HalControl {
                 null
             } catch (e: SecurityException) {
                 Log.w(TAG, "IControl call refused", e)
+                null
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "IControl rejected the arguments", e)
+                null
+            } catch (e: IllegalStateException) {
+                Log.w(TAG, "IControl call not possible now", e)
+                null
+            } catch (e: UnsupportedOperationException) {
+                Log.w(TAG, "IControl call not supported", e)
+                null
+            } catch (e: ServiceSpecificException) {
+                Log.w(TAG, "IControl call failed with error ${e.errorCode}", e)
                 null
             }
         }

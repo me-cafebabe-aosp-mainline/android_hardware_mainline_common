@@ -8,10 +8,13 @@ package vendor.mainline.audio.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import vendor.mainline.audio.CardStatus
@@ -50,6 +53,10 @@ class HalSettingsViewModel : ViewModel() {
     private val _ui = MutableStateFlow<Ui>(Ui.Loading)
     val ui: StateFlow<Ui> = _ui.asStateFlow()
 
+    private val _failures = Channel<Int>(Channel.BUFFERED)
+    /** String resources of the changes the HAL did not take, for the page to show once each. */
+    val failures: Flow<Int> = _failures.receiveAsFlow()
+
     private var edits: Map<String, String?> = emptyMap()
     private var pollJob: Job? = null
 
@@ -77,19 +84,33 @@ class HalSettingsViewModel : ViewModel() {
                 }
             }
         if (changes.isEmpty()) return
-        restartingThen { HalControl.call { it.applySettings(changes.toTypedArray()) } != null }
+        // Refused while a trial runs, or when the HAL can not store the settings (e.g. without
+        // the SELinux label of its state directory). The edits stay for another try.
+        restartingThen(R.string.settings_apply_failed) {
+            HalControl.call { it.applySettings(changes.toTypedArray()) } != null
+        }
     }
 
     fun keep() {
         viewModelScope.launch {
-            HalControl.call { it.keepSettings() }
+            // Refused when the trial ended already, or the settings can not be stored: the HAL
+            // then goes back to the previous ones on its own.
+            if (HalControl.call { it.keepSettings() } == null) {
+                _failures.trySend(R.string.settings_keep_failed)
+            }
             reload()
         }
     }
 
-    fun revert() = restartingThen { HalControl.call { it.revertSettings() } != null }
+    fun revert() =
+        restartingThen(R.string.settings_revert_failed) {
+            HalControl.call { it.revertSettings() } != null
+        }
 
-    fun resetAll() = restartingThen { HalControl.call { it.resetSettings() } != null }
+    fun resetAll() =
+        restartingThen(R.string.settings_reset_failed) {
+            HalControl.call { it.resetSettings() } != null
+        }
 
     /**
      * Reads the settings and the trial again, and keeps doing so while a trial counts down. After a
@@ -111,8 +132,11 @@ class HalSettingsViewModel : ViewModel() {
         }
     }
 
-    /** Runs [request], which restarts the HAL on success, then waits for the HAL to come back. */
-    private fun restartingThen(request: suspend () -> Boolean) {
+    /**
+     * Runs [request], which restarts the HAL on success, then waits for the HAL to come back. On
+     * failure, shows [failure] and the state as the HAL has it.
+     */
+    private fun restartingThen(failure: Int, request: suspend () -> Boolean) {
         pollJob?.cancel()
         pollJob =
             viewModelScope.launch {
@@ -120,6 +144,7 @@ class HalSettingsViewModel : ViewModel() {
                     if (it is Ui.Loaded) Ui.Loaded(it.state.copy(restarting = true)) else it
                 }
                 if (!request()) {
+                    _failures.trySend(failure)
                     reload()
                     return@launch
                 }

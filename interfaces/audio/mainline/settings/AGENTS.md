@@ -78,11 +78,16 @@ This directory (`MainlineAudioSettings`, APEX app):
   `AudioDeviceInfo.getEncodings()`: the public view of passthrough. Do not
   use `getReportedSurroundFormats()` / `getSurroundFormats()`: they are
   `@TestApi`, hidden from a vendor app.
-- `IControl` errors reach Java as exceptions (`EX_ILLEGAL_STATE` as
+- `IControl` errors reach Java as runtime exceptions (`EX_ILLEGAL_STATE` as
   `IllegalStateException`, `EX_ILLEGAL_ARGUMENT` as
-  `IllegalArgumentException`, `Parcel.java`), which `HalControl.call()` does
-  not catch: a call that can fail that way catches them itself
-  (`HalControl.probeHdmi()`).
+  `IllegalArgumentException`, a service specific error as
+  `ServiceSpecificException`, `Parcel.java`). `HalControl.call()` turns them
+  into null like a dead HAL, so an uncaught one can not crash the app. A
+  call that has to tell them apart catches them inside its block
+  (`HalControl.probeHdmi()` maps `EX_ILLEGAL_STATE` to `Busy`). A page that
+  changes something reports a null result through its ViewModel's
+  `failures` (a toast), and shows the HAL's state again rather than the
+  value it asked for.
 - `frameworks/base/services/permission/java/com/android/server/permission/access/permission/AppIdPermissionPolicy.kt`:
   which allowlist applies to an APK in an APEX, and why a vendor app gets no
   privileged permission without `vendorPrivileged`

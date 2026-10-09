@@ -37,8 +37,14 @@ class DiagnosticsFragment : SettingsFragment() {
                 viewModel.refresh()
                 launch { viewModel.state.collect(::render) }
                 launch { viewModel.probe.collect { it?.let(::showProbe) } }
+                launch { viewModel.failures.collect(::showFailure) }
             }
         }
+    }
+
+    /** Tells the user about a change the HAL did not take. */
+    private fun showFailure(message: Int) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
     }
 
     private fun render(state: DiagnosticsViewModel.State) {

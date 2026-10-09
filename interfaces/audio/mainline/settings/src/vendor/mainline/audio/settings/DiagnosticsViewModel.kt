@@ -11,9 +11,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import vendor.mainline.audio.Status
@@ -41,6 +44,10 @@ class DiagnosticsViewModel(application: Application) : AndroidViewModel(applicat
 
     private var refreshJob: Job? = null
 
+    private val _failures = Channel<Int>(Channel.BUFFERED)
+    /** String resources of the changes the HAL did not take, for the page to show once each. */
+    val failures: Flow<Int> = _failures.receiveAsFlow()
+
     /** Reads the status again; streams and jacks change all the time. */
     fun refresh() {
         refreshJob?.cancel()
@@ -64,7 +71,7 @@ class DiagnosticsViewModel(application: Application) : AndroidViewModel(applicat
     /** Lets HDMI try high bit rate again, then shows the new state. */
     fun resetHbr() {
         viewModelScope.launch {
-            HalControl.resetHbr()
+            if (!HalControl.resetHbr()) _failures.trySend(R.string.diagnostics_reset_hbr_failed)
             refresh()
         }
     }

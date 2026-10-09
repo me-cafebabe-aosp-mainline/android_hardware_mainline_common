@@ -8,6 +8,7 @@ package vendor.mainline.audio.settings
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
+import android.widget.Toast
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -40,6 +41,7 @@ class HalSettingsFragment : SettingsFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.ui.collect(::render) }
+                launch { viewModel.failures.collect(::showFailure) }
                 launch {
                     viewModel.ui
                         .map {
@@ -52,6 +54,11 @@ class HalSettingsFragment : SettingsFragment() {
                 }
             }
         }
+    }
+
+    /** Tells the user about a change the HAL did not take. */
+    private fun showFailure(message: Int) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
     }
 
     private fun render(ui: HalSettingsViewModel.Ui) {
