@@ -10,6 +10,12 @@
          requesting one without an allowlist entry stops the system at boot.
          Default devices are the job of MainlineAudioRouting (routing/). -->
 
+    <!-- The TvSettings slice links to the routing app's page when it is
+         installed. -->
+    <queries>
+        <package android:name="vendor.mainline.audio.routing" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_audio_devices"
@@ -50,6 +56,14 @@
                 android:name="com.android.settings.summary"
                 android:resource="@string/settings_summary" />
         </activity>
+
+        <!-- Display & sound › Audio devices and hardware in TvSettings, through
+             the overlay in tv/. Only callers holding MANAGE_SLICE_PERMISSIONS
+             get the slice. -->
+        <provider
+            android:name=".TvSliceProvider"
+            android:authorities="vendor.mainline.audio.settings.slices"
+            android:exported="true" />
 
     </application>
 </manifest>

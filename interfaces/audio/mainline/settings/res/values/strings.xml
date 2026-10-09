@@ -251,4 +251,9 @@
     <string name="output_set_failed">The audio HAL did not take the change. This page shows what it applies.</string>
     <string name="output_test_failed">The test tone could not be played on this output.</string>
 
+    <!-- TvSettings: Display & sound › Audio devices and hardware -->
+    <string name="tv_slice_title">Audio devices and hardware</string>
+    <string name="tv_routing_title">Default audio devices</string>
+    <string name="tv_routing_summary">The device all audio goes to while it is connected</string>
+
 </resources>
