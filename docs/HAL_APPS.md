@@ -101,7 +101,10 @@ domain in the device's vendor policy (`device/mainline/common/sepolicy/vendor`):
     the compatibility matrix entry to the range (`1-2`), and switch the
     `-V<n>-ndk` / `-V<n>-java` library names. Only add to a frozen version's
     successor (new methods, new fields at the end); never remove or change
-    what an earlier version has. Freeze again before it ships.
+    what an earlier version has. A new `String` or array field needs a
+    default (`= ""`, `= {}`) or `@nullable`, or the API check fails: it is
+    what a reader of the new version gets from an older writer. Freeze again
+    before it ships.
 - Declare the instance in the HAL's VINTF fragment inside the APEX, and add
   an optional entry to a framework compatibility matrix module installed on
   the product partition (`vintf_compatibility_matrix`, `product_specific`),
