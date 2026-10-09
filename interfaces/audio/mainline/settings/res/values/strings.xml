@@ -60,8 +60,8 @@
     <string name="hbr_supported">supported</string>
     <string name="hbr_unsupported">not supported</string>
     <string name="hbr_undetectable">off, the driver can not tell</string>
-    <!-- e.g. "High bit rate: supported, as the hda driver quirk says" -->
-    <string name="hdmi_hbr_driver">High bit rate: <xliff:g id="hbr">%1$s</xliff:g>, as the <xliff:g id="quirk">%2$s</xliff:g> driver quirk says</string>
+    <!-- e.g. "High bit rate: supported (driver: hda, HDMI pins report HBR)" -->
+    <string name="hdmi_hbr_driver">High bit rate: <xliff:g id="hbr">%1$s</xliff:g> (driver: <xliff:g id="quirk">%2$s</xliff:g>)</string>
     <!-- e.g. "High bit rate: supported, by the card setting" -->
     <string name="hdmi_hbr_setting">High bit rate: <xliff:g id="hbr">%1$s</xliff:g>, by the card setting</string>
     <!-- e.g. "High bit rate: off since this output refused it: 8 channels at 192000 Hz not offered by the device" -->

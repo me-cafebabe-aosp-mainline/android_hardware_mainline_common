@@ -349,7 +349,11 @@ status.
   control of the HDMI PCM device, the IEC958 controls are mixer controls
   numbered by HDMI PCM. High bit rate needs pin support (and, on Tegra 20 /
   30, is not available at all); the driver then refuses it when the device
-  is prepared, which the HAL remembers per output.
+  is prepared, which the HAL remembers per output. Mainline checks the pin's
+  `HBR` capability (`/proc/asound/card<N>/codec#*`), which the Tegra 210
+  pin does not report although NVIDIA's downstream kernel sends high bit
+  rate on it; the HAL only shows the capability next to the high bit rate
+  state.
 * **ASoC `hdmi-codec`** (e.g. Amlogic through `dw-hdmi`): expected to work
   for everything but high bit rate, not tested. On DPCM cards the controls
   sit on an internal back-end PCM, so the HAL uses the card's only ELD /

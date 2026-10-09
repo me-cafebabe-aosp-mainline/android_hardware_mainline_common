@@ -297,8 +297,11 @@ HbrState AlsaHdmiControl::Hbr() const {
                 .support = *hbr_override_ ? HbrSupport::kSupported : HbrSupport::kUnsupported,
                 .source = HbrState::Source::kSetting};
     }
-    return HbrState{
-            .support = quirk_.hbr, .source = HbrState::Source::kDriver, .detail = quirk_.name};
+    std::string detail = quirk_.name;
+    if (!quirk_.hbr_detail.empty()) detail += ", " + quirk_.hbr_detail;
+    return HbrState{.support = quirk_.hbr,
+                    .source = HbrState::Source::kDriver,
+                    .detail = std::move(detail)};
 }
 
 void AlsaHdmiControl::ReportHbrFailure(const std::string& reason) {

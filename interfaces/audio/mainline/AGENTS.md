@@ -179,7 +179,12 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   HDA ordinal, which could hit an unrelated S/PDIF control.
 * High bit rate (8 channels at 192 kHz of IEC 61937 data): HDA refuses it at
   prepare time (`-EINVAL`) when the pin or display side can not do it, so it
-  is `kSupported` there and a refusal turns it off for the head
+  is `kSupported` there and a refusal turns it off for the head. The pins'
+  `HBR` capability (`Pincap` lines of `/proc/asound/card<N>/codec#*`, format
+  of the kernel's `hda_proc.c`, `HdaPinDetail()` in `passthrough/Quirks.cpp`)
+  only goes into the diagnostics: Tegra 210 does high bit rate with NVIDIA's
+  downstream kernel although its pin does not report it, so do not let the
+  bit decide
   (`HeadStates`, shared, outlives streams, cleared when HDMI connects).
   Only a refusal of high bit rate itself counts (`PassthroughSink::
   CheckHbrRefusal()`: `-EINVAL` at prepare, or the device not offering 8

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "alsa/AlsaCard.h"
@@ -34,8 +35,12 @@ struct Quirk {
     const char* name;
     std::vector<ControlLocator> locators;
     HbrSupport hbr;
+    // What the card says about high bit rate, for the diagnostics (HDA pin
+    // capabilities); `hbr` does not depend on it.
+    std::string hbr_detail;
 };
 
+// May read /proc/asound/card<N>/codec#*; the result is cached per card.
 Quirk QuirkFor(const alsa::CardInfo& card);
 
 }  // namespace aidl::android::hardware::audio::core::mainline::passthrough
