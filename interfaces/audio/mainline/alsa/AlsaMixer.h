@@ -14,6 +14,12 @@ struct MixerInitOptions {
     int playback_percent = 100;
     // Percentage of the control range applied to capture volume controls.
     int capture_percent = 80;
+    // Turn every switch off before turning it on, instead of only turning it
+    // on. A guest's driver skips a write that
+    // does not change its cached value, so an emulated sound card (QEMU)
+    // that applies the mixer to its host audio stream only on a write
+    // would never see the values of a card that already has them.
+    bool toggle_switches = false;
 };
 
 // Brings the simple mixer of a card into a usable state, in the spirit of
@@ -25,6 +31,8 @@ struct MixerInitOptions {
 // This is only used for cards that have no UCM profile; a UCM profile knows
 // far better which controls matter. Returns false when the mixer could not be
 // opened.
+// With `toggle_switches` each switch is turned off first, so that turning it
+// on is a change the card sees.
 bool InitializeMixer(int card, const MixerInitOptions& options);
 
 }  // namespace aidl::android::hardware::audio::core::mainline::alsa

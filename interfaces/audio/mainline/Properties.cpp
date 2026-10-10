@@ -113,6 +113,7 @@ const std::vector<Spec>& GlobalSpecs() {
             {"mixer.init", Spec::Type::kBool},
             {"mixer.playback_percent", Spec::Type::kInt, 0, 100},
             {"mixer.capture_percent", Spec::Type::kInt, 0, 100},
+            {"mixer.toggle", Spec::Type::kBool},
             {"latency_ms", Spec::Type::kInt, 5, 500},
             {"fast_latency_ms", Spec::Type::kInt, 0, 500},
             {"multichannel", Spec::Type::kBool},
@@ -152,6 +153,7 @@ Properties Properties::Load(std::map<std::string, std::string> overrides) {
             std::clamp(source.Int("mixer.playback_percent", props.mixer_playback_percent), 0, 100);
     props.mixer_capture_percent =
             std::clamp(source.Int("mixer.capture_percent", props.mixer_capture_percent), 0, 100);
+    props.mixer_toggle = source.Bool("mixer.toggle", props.mixer_toggle);
     props.latency_ms = std::clamp(source.Int("latency_ms", props.latency_ms), 5, 500);
     if (const int fast = source.Int("fast_latency_ms", props.fast_latency_ms); fast > 0) {
         props.fast_latency_ms = std::min(fast, 500);
@@ -170,7 +172,8 @@ std::string Properties::ToString() const {
        << " include_usb_cards=" << include_usb_cards << " null_mic=" << null_mic
        << " ucm.enabled=" << ucm_enabled << " ucm.verb=\"" << ucm_verb << "\""
        << " mixer.init=" << mixer_init << " mixer.playback_percent=" << mixer_playback_percent
-       << " mixer.capture_percent=" << mixer_capture_percent << " latency_ms=" << latency_ms
+       << " mixer.capture_percent=" << mixer_capture_percent << " mixer.toggle=" << mixer_toggle
+       << " latency_ms=" << latency_ms
        << " fast_latency_ms=" << fast_latency_ms << " multichannel=" << multichannel
        << " hdmi.passthrough=" << hdmi_passthrough << " hdmi.passthrough_formats=["
        << ::android::base::Join(hdmi_passthrough_formats, ",")
@@ -264,6 +267,7 @@ std::map<std::string, std::string> Properties::Values(
             {"mixer.init", BoolText(mixer_init)},
             {"mixer.playback_percent", std::to_string(mixer_playback_percent)},
             {"mixer.capture_percent", std::to_string(mixer_capture_percent)},
+            {"mixer.toggle", BoolText(mixer_toggle)},
             {"latency_ms", std::to_string(latency_ms)},
             {"fast_latency_ms", std::to_string(fast_latency_ms)},
             {"multichannel", BoolText(multichannel)},

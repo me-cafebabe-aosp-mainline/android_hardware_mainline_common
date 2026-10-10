@@ -63,6 +63,9 @@ struct Properties {
     bool mixer_init = true;
     int mixer_playback_percent = 100;
     int mixer_capture_percent = 80;
+    // Turn each switch off and on again while initialising the mixer, for
+    // emulated cards whose host audio stream only follows a mixer write.
+    bool mixer_toggle = false;
 
     // Nominal latency reported for PCM streams, also drives the stream buffer
     // size negotiated with the framework.

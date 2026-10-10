@@ -71,8 +71,15 @@ long PercentToValue(long min, long max, int percent) {
     return min + std::lround((max - min) * (std::clamp(percent, 0, 100) / 100.0));
 }
 
-void InitPlaybackElement(snd_mixer_elem_t* elem, const std::string& name, int percent) {
+// With `toggle`, the switch is turned off first, so that turning it on is a change the card sees.
+void InitPlaybackElement(snd_mixer_elem_t* elem, const std::string& name, int percent,
+                         bool toggle) {
     if (snd_mixer_selem_has_playback_switch(elem)) {
+        if (toggle) {
+            if (const int err = snd_mixer_selem_set_playback_switch_all(elem, 0); err < 0) {
+                LOG(DEBUG) << "  '" << name << "' playback switch off: " << ErrorString(err);
+            }
+        }
         if (const int err = snd_mixer_selem_set_playback_switch_all(elem, 1); err < 0) {
             LOG(DEBUG) << "  '" << name << "' playback switch on: " << ErrorString(err);
         } else {
@@ -94,8 +101,14 @@ void InitPlaybackElement(snd_mixer_elem_t* elem, const std::string& name, int pe
     }
 }
 
-void InitCaptureElement(snd_mixer_elem_t* elem, const std::string& name, int percent) {
+void InitCaptureElement(snd_mixer_elem_t* elem, const std::string& name, int percent,
+                        bool toggle) {
     if (snd_mixer_selem_has_capture_switch(elem)) {
+        if (toggle) {
+            if (const int err = snd_mixer_selem_set_capture_switch_all(elem, 0); err < 0) {
+                LOG(DEBUG) << "  '" << name << "' capture switch off: " << ErrorString(err);
+            }
+        }
         if (const int err = snd_mixer_selem_set_capture_switch_all(elem, 1); err < 0) {
             LOG(DEBUG) << "  '" << name << "' capture switch on: " << ErrorString(err);
         } else {
@@ -124,7 +137,8 @@ bool InitializeMixer(int card, const MixerInitOptions& options) {
     if (mixer == nullptr) return false;
 
     LOG(INFO) << __func__ << ": card " << card << " playback=" << options.playback_percent
-              << "% capture=" << options.capture_percent << "%";
+              << "% capture=" << options.capture_percent
+              << "% toggle_switches=" << options.toggle_switches;
     for (snd_mixer_elem_t* elem = snd_mixer_first_elem(mixer.get()); elem != nullptr;
          elem = snd_mixer_elem_next(elem)) {
         if (!snd_mixer_selem_is_active(elem)) continue;
@@ -134,8 +148,8 @@ bool InitializeMixer(int card, const MixerInitOptions& options) {
             LOG(DEBUG) << "  '" << name << "' skipped";
             continue;
         }
-        InitPlaybackElement(elem, name, options.playback_percent);
-        InitCaptureElement(elem, name, options.capture_percent);
+        InitPlaybackElement(elem, name, options.playback_percent, options.toggle_switches);
+        InitCaptureElement(elem, name, options.capture_percent, options.toggle_switches);
     }
     return true;
 }

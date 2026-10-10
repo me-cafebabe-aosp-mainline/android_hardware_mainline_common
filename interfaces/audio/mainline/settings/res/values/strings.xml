@@ -190,6 +190,7 @@
     <string name="setting_mixer_init">Set up the mixer of cards without UCM</string>
     <string name="setting_mixer_playback_percent">Playback level (%)</string>
     <string name="setting_mixer_capture_percent">Capture level (%)</string>
+    <string name="setting_mixer_toggle">Turn mixer switches off and on (emulated cards)</string>
     <string name="setting_log_verbose">Verbose logging</string>
     <string name="setting_card_rates">Sample rates (Hz)</string>
     <string name="setting_card_bits">Sample widths (bits)</string>

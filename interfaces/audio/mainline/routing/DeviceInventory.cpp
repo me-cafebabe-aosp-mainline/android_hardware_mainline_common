@@ -298,6 +298,7 @@ void DeviceInventory::CollectCandidates(const Properties& properties) {
                 alsa::MixerInitOptions options;
                 options.playback_percent = properties.mixer_playback_percent;
                 options.capture_percent = properties.mixer_capture_percent;
+                options.toggle_switches = properties.mixer_toggle;
                 alsa::InitializeMixer(card.index, options);
             }
             CollectFromPcmDevices(card);

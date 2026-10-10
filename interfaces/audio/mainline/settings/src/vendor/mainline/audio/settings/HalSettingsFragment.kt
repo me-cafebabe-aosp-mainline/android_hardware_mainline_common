@@ -299,7 +299,12 @@ class HalSettingsFragment : SettingsFragment() {
                 ),
                 Group(
                     R.string.settings_group_mixer,
-                    listOf("mixer.init", "mixer.playback_percent", "mixer.capture_percent"),
+                    listOf(
+                        "mixer.init",
+                        "mixer.playback_percent",
+                        "mixer.capture_percent",
+                        "mixer.toggle",
+                    ),
                 ),
                 Group(R.string.settings_group_debug, listOf("log.verbose")),
             )
@@ -323,6 +328,7 @@ class HalSettingsFragment : SettingsFragment() {
                 "mixer.init" to R.string.setting_mixer_init,
                 "mixer.playback_percent" to R.string.setting_mixer_playback_percent,
                 "mixer.capture_percent" to R.string.setting_mixer_capture_percent,
+                "mixer.toggle" to R.string.setting_mixer_toggle,
                 "log.verbose" to R.string.setting_log_verbose,
             )
 

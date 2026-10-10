@@ -442,6 +442,7 @@ void ModuleMainline::onExternalDeviceConnectionChanged(const AudioPort& audio_po
     alsa::MixerInitOptions options;
     options.playback_percent = properties_.mixer_playback_percent;
     options.capture_percent = properties_.mixer_capture_percent;
+    options.toggle_switches = properties_.mixer_toggle;
     alsa::InitializeMixer(endpoint->card, options);
 }
 

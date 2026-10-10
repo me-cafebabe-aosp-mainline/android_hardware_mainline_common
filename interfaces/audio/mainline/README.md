@@ -133,6 +133,7 @@ starts.
 | `mixer.init`              | bool   | `true`  | For cards *without* a UCM profile and for USB cards: unmute and set default volumes at start-up. |
 | `mixer.playback_percent`  | int    | `100`   | Playback volume applied by `mixer.init`. |
 | `mixer.capture_percent`   | int    | `80`    | Capture volume applied by `mixer.init`. |
+| `mixer.toggle`            | bool   | `false` | Turn every switch off and on again in `mixer.init`. For emulated sound cards (QEMU with a host audio backend such as CoreAudio) that apply the mixer to their host stream only when the guest writes it: the guest driver skips a write that does not change its cached value, so the card would never see the unmuted state. |
 | `latency_ms`              | int    | `20`    | Nominal stream latency; drives the buffer size negotiated with the framework (5..500). |
 | `fast_latency_ms`         | int    | `0`     | 0: no FAST output (the primary output uses `latency_ms`). Above 0 (max 500): `primary output` becomes PRIMARY \| FAST with this latency, so that the framework runs a FastMixer and grants fast tracks. Only effective when the resulting buffer is below the framework's 20 ms normal mixer period at every rate of the port, i.e. up to 10 ms at 44.1 / 48 kHz; otherwise a warning is logged and nothing changes. See "Mix ports". |
 | `multichannel`            | bool   | `true`  | Expose a DIRECT "multichannel output" mix port when a device supports 6+ channels. |
