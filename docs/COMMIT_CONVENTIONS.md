@@ -34,8 +34,27 @@ is worth shortening the same way.
 
 ## Body
 
-Explain what changed and why, in full sentences. Wrap normally. Multiple
-paragraphs are fine for non-trivial changes.
+Say why the change is needed, then what it does. Every sentence should tell
+the reader something the diff does not; spend the words there.
+
+- Start with the problem, reason or background, not with a description of
+  the diff.
+- Keep history (which commit caused it) and consequences (what breaks) when
+  they explain the change.
+- Background the diff can't show is welcome: external constraints, when a
+  feature appeared, who uses the change.
+- For a new flag or interface, a short usage example is welcome. Explain it
+  with comments inside the example, not in prose after it.
+- One idea per sentence. Split a sentence that chains clauses with "which",
+  "so that" or "and". Use plain words; drop hedging and filler.
+- One paragraph per topic, a few sentences each. Put a blank line between a
+  cause and its consequence.
+- Use a list for separate, parallel changes: one short line per item.
+- Say what the change does in a sentence or two; the diff has the details.
+  Don't justify obvious choices at length. Alternatives you did not take
+  are fine, if kept short.
+- Usage or configuration that people need later also goes into the
+  `README.md`, not only into the commit message.
 
 ## Trailers
 

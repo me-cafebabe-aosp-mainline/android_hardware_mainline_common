@@ -67,6 +67,20 @@ Java only appears as generated AIDL code.
 - **R8.** Keep classes instantiated by name (manifest, preference
   `fragment`) and AIDL parcelables in `proguard.flags`.
 
+## Comments
+
+- Comment why, not what. If the name and types already say it, add nothing.
+- Comment what the code cannot show: a hardware or framework quirk, an
+  ordering or locking requirement, an invariant, a non-obvious workaround.
+- One line where one line is enough. Longer is for genuinely complicated
+  logic.
+- No comment that restates the next line, narrates a class that is clear
+  from its name, or lists parameters that are self-explanatory.
+- Doc comments (KDoc, Doxygen) on public API only when the contract is not
+  obvious from the signature.
+- Design rationale that spans a component belongs in its `AGENTS.md` or
+  `README.md`, not in the code.
+
 ## Copyright header
 
 Every new source file, in any language, starts with the SPDX license header;

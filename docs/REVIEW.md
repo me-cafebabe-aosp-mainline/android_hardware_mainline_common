@@ -106,6 +106,8 @@ cannot verify a change that way either — verify by evidence instead:
   ~38-line guidance in `vendor/mainline/docs/review.md` (excluding code
   snippets and trailers), and doesn't spend most of it explaining the
   obvious.
+- Comments follow `docs/CODE_STYLE.md` → Comments: they explain why, not
+  what, and are short unless the logic is complicated.
 - One logical change per commit; split unrelated changes instead of
   bundling them.
 - No unrelated/unnecessary diff noise (stray whitespace, reformatting
