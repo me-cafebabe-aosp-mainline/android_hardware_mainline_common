@@ -27,6 +27,8 @@ here yet.
 | `IControl` version 2 (HDMI / FAST diagnostics, `probeHdmi()`, `resetHbr()`) and the settings app pages using it | not built (frozen) |
 | `mixer.toggle` (switches off and on in the mixer init, for QEMU cards whose host audio stream does not follow the guest's unchanged mixer values) | not verified |
 | TvSettings entry (Display & sound slot, `TvSliceProvider`, `MainlineAudioTvSettingsOverlay`) and the pages with a remote | not built |
+| AC97 front panel (`card.<selector>.ac97_front_panel`) without UCM: pin override, codec reconfiguration at start and restore, device policy | ECS G41T-CM3 (ALC662): front headset plays along with the rear jack |
+| AC97 front panel with UCM: front headphones as a bus output | not verified; no HDA card uses UCM yet (the HDA profile wants `@HDA`) |
 
 ## Known issues
 
