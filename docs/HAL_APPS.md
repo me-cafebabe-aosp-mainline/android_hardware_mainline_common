@@ -88,8 +88,8 @@ domain in the device's vendor policy (`device/mainline/common/sepolicy/vendor`):
   an app process runs the system's libbinder: every call fails with
   "Cannot do a user transaction on a vendor stability binder ... in a
   system stability context" (`frameworks/native/libs/binder/BpBinder.cpp`).
-- Versioning (`owner` set, `aidl_api/<name>/` holds the dumps; agents do
-  not build, so the maintainer runs the `m` commands, `docs/WORKFLOW.md`):
+- Versioning (`owner` set, `aidl_api/<name>/` holds the dumps; the `m`
+  commands are Android builds, ask before running them, `docs/WORKFLOW.md`):
   - A new interface starts unfrozen (`frozen: false`). The build checks it
     against `aidl_api/<name>/current/`: run `m <name>-update-api` after
     every change of the `.aidl` files.

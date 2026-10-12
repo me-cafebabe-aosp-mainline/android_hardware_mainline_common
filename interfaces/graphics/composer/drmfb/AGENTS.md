@@ -6,7 +6,7 @@
 
 This directory implements a client-composition-only Composer3 V5 DRM HAL. Read
 `INITIAL_IMPLEMENTATION.md` before changing it; that file limits reference
-paths and explicitly prohibits local builds and tests.
+paths.
 
 ## Invariants
 

@@ -68,8 +68,8 @@ Paths below are relative to the AOSP source tree root.
 - Do NOT browse anywhere outside the AOSP source tree for reference, and do
   not search broadly across the root of the AOSP source tree.
 - Do NOT look for other HALs that weren't mentioned as reference.
-- Do NOT try to compile or verify yourself; the user will do so and report
-  issues back to you. See `docs/WORKFLOW.md`.
+- Do NOT start a build or tests without asking the user; usually the user
+  builds and reports issues back to you. See `docs/WORKFLOW.md`.
 - Do NOT blindly set hardware-specific properties: read them from
   configuration files or Android properties when they can't be derived at
   runtime.

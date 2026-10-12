@@ -125,7 +125,7 @@ Run a formatter on the files you actually touched before committing:
   --kotlinlang-style <files>` (relative to the AOSP root).
 - `Android.bp`: `out/host/linux-x86/bin/bpfmt -w <files>` (relative to the
   AOSP root; it's a build output, not a prebuilt). If it doesn't exist yet,
-  building it yourself would violate `docs/WORKFLOW.md` — ask the maintainer
+  building it is an Android build (`docs/WORKFLOW.md`): ask the maintainer
   to build it, or leave `Android.bp` formatting to them for that pass.
 
 Only format the files you changed. Do not go searching the tree for other

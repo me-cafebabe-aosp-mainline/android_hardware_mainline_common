@@ -89,8 +89,9 @@ after):
 
 ## 6. Testing by affected users
 
-An AI agent must not compile or run tests itself (`docs/WORKFLOW.md`), so it
-cannot verify a change that way either — verify by evidence instead:
+An AI agent builds or tests only when the human developer confirms it
+(`docs/WORKFLOW.md`), and its test environment is rarely the hardware at
+risk. Verify by evidence:
 
 - Does the commit message, or the contributor, state what was tested, on
   which hardware/config, and with what result?

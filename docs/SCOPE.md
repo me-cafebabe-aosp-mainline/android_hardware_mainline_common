@@ -80,8 +80,8 @@ listed cases into the implementation.
 - Derive regression cases from the acceptance surface, not only from the
   reported example. Cover representative valid and invalid cases,
   boundaries, malformed/error input, and at least one case proving ordinary
-  valid input is not rejected. An AI agent may write these tests but must
-  leave running them to the maintainer per `docs/WORKFLOW.md`.
+  valid input is not rejected. An AI agent may write these tests; running
+  them follows `docs/WORKFLOW.md`.
 - If enforcing a new invariant exposes pre-existing violations, inventory
   the full set before deciding the patch structure. Prefer a separate
   prerequisite cleanup commit followed by the implementation commit, so the

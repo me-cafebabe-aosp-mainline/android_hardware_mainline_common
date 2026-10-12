@@ -119,5 +119,5 @@ Build modules: `android.hardware.camera.provider-service.mainline` (binary),
 ## Tests
 
 Unit tests live in `tests/` and run with `atest camera_provider_mainline_test`.
-Add tests for new logic that can run without hardware. Do not run them
-yourself (see `docs/WORKFLOW.md`); the maintainer does.
+Add tests for new logic that can run without hardware. Running them
+follows `docs/WORKFLOW.md`: ask the maintainer first.

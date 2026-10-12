@@ -112,6 +112,7 @@ This directory (`MainlineAudioSettings`, APEX app):
 
 ## Workflow
 
-- Do not build, install or run anything; the maintainer does.
+- Builds, installs and runs follow `docs/WORKFLOW.md`: ask the maintainer
+  first.
 - Format touched Kotlin with the prebuilt ktfmt:
   `java -jar prebuilts/build-tools/common/framework/ktfmt.jar --kotlinlang-style <files>`
