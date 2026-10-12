@@ -104,6 +104,8 @@ struct Properties {
         // Forces high bit rate passthrough formats on / off for the card's
         // HDMI heads, overriding passthrough/Quirks. Unset: the quirk decides.
         std::optional<bool> hbr;
+        // Front jacks without detection (alsa::ConfigureFrontPanel()).
+        bool ac97_front_panel = false;
     };
 
     static Properties Load(std::map<std::string, std::string> overrides = {});

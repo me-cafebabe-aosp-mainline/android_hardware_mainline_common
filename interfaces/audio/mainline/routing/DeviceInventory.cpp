@@ -194,6 +194,7 @@ std::shared_ptr<DeviceInventory> DeviceInventory::Discover(const Properties& pro
     std::shared_ptr<DeviceInventory> inventory(new DeviceInventory());
     inventory->properties_ = properties;
     inventory->SelectCards(properties);
+    inventory->ConfigureFrontPanels(properties);
     inventory->CollectCandidates(properties);
     inventory->ProbeCapabilities();
     inventory->FilterCapabilities(properties);
@@ -282,6 +283,51 @@ void DeviceInventory::SelectCards(const Properties& properties) {
               << primary_card_;
 }
 
+void DeviceInventory::ConfigureFrontPanels(const Properties& properties) {
+    // Before anything opens the cards. Restoring runs on every start, so a
+    // reverted trial puts the pins back.
+    for (const auto& card : cards_) {
+        if (card.IsUsb()) continue;
+        const bool ac97 = properties.ForCard(card.id, card.index, card.name).ac97_front_panel;
+        const alsa::FrontPanelResult result = alsa::ConfigureFrontPanel(card.index, ac97);
+        if (ac97 || result == alsa::FrontPanelResult::kApplied ||
+            result == alsa::FrontPanelResult::kFailed) {
+            LOG(INFO) << __func__ << ": card " << card.index << " (" << card.id
+                      << "): " << (ac97 ? "AC97" : "HD Audio") << " front panel, "
+                      << alsa::ToString(result);
+        }
+        if (ac97) front_panels_[card.index] = result;
+    }
+}
+
+bool DeviceInventory::HasAc97FrontPanel(int card) const {
+    const auto it = front_panels_.find(card);
+    return it != front_panels_.end() && (it->second == alsa::FrontPanelResult::kApplied ||
+                                         it->second == alsa::FrontPanelResult::kUnchanged);
+}
+
+void DeviceInventory::DemoteUndetectableJacks(const alsa::CardInfo& card,
+                                              const ucm::UcmManager& ucm, size_t first_endpoint) {
+    // Android never connects a template whose plug the kernel can't report.
+    // Without JackControl nothing says the device is on the front panel.
+    for (size_t i = first_endpoint; i < endpoints_.size(); ++i) {
+        Endpoint& e = endpoints_[i];
+        if (e.role != DeviceRole::kHeadphones && e.role != DeviceRole::kHeadset &&
+            e.role != DeviceRole::kHeadsetMic) {
+            continue;
+        }
+        const ucm::UcmDevice* device = ucm.FindDevice(e.ucm_device);
+        if (device == nullptr || device->jack_control.empty()) continue;
+        const std::string& jack = device->jack_control;
+        const bool detectable = jack.find("Phantom") == std::string::npos &&
+                                alsa::ReadJackState(card.index, jack).has_value();
+        if (detectable) continue;
+        LOG(INFO) << __func__ << ": \"" << e.name << "\" (" << routing::ToString(e.role)
+                  << ") has no jack detection (\"" << jack << "\"), making it a bus port";
+        e.role = e.is_input ? DeviceRole::kBusIn : DeviceRole::kBusOut;
+    }
+}
+
 void DeviceInventory::CollectCandidates(const Properties& properties) {
     for (const auto& card : cards_) {
         std::unique_ptr<ucm::UcmManager> ucm;
@@ -334,6 +380,7 @@ void DeviceInventory::CollectFromUcm(const alsa::CardInfo& card, ucm::UcmManager
             endpoints_.push_back(std::move(endpoint));
         }
     }
+    if (HasAc97FrontPanel(card.index)) DemoteUndetectableJacks(card, ucm, first_endpoint);
 
     // UCM commonly calls the playback path "Headphones" and the capture path
     // "Headset". Android connects OUT_HEADSET (not OUT_HEADPHONE) with IN_HEADSET
@@ -712,8 +759,11 @@ std::string DeviceInventory::Dump() const {
     os << "DeviceInventory: " << cards_.size() << " card(s), primary card " << primary_card_ << ", "
        << endpoints_.size() << " endpoint(s)\n";
     for (const auto& card : cards_) {
-        os << "  " << card.ToString() << (UcmForCard(card.index) != nullptr ? " [UCM]" : "")
-           << "\n";
+        os << "  " << card.ToString() << (UcmForCard(card.index) != nullptr ? " [UCM]" : "");
+        if (const auto it = front_panels_.find(card.index); it != front_panels_.end()) {
+            os << " [AC97 front panel: " << alsa::ToString(it->second) << "]";
+        }
+        os << "\n";
     }
     for (const auto& e : endpoints_) {
         os << "  " << e.ToString() << "\n";

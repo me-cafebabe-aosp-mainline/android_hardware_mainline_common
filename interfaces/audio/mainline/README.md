@@ -97,6 +97,17 @@ $(call soong_config_set_bool,mainline_audio,ffmpeg_passthrough,true)
   `JackControl` is used when present; without UCM, HDA-style
   `HDMI/DP,pcm=N Jack` controls are used. The framework still needs to report
   HDMI availability as above.
+* **AC97 front panels** (`card.<selector>.ac97_front_panel`). The HAL changes
+  the front jack pins through `/sys/class/sound/hwC<card>D<codec>/`
+  (`user_pin_configs`, then `reconfig`), which needs the kernel options
+  `SND_HDA_HWDEP` and `SND_HDA_RECONFIG`, write access for the `audio` group
+  (ueventd) and an SELinux label the HAL may write
+  (`device/mainline/common` has both). A reconfiguration rebuilds the codec's
+  controls and PCM devices, so it only succeeds while nothing has the card
+  open; the HAL does it at start, before it opens the card, and on every
+  start puts the pins back when the setting is off. Only pins whose location
+  is the front panel change. The kernel forgets the change at reboot, so the
+  HAL applies it at every start.
 * **Real-time scheduling for FAST.** With `fast_latency_ms` the stream worker
   of the primary output asks for `SCHED_FIFO`. The rc file grants
   `SYS_NICE` and an `rtprio` limit, and the platform policy already allows
@@ -144,6 +155,7 @@ starts.
 | `card.<selector>.rates`   | string | *(all)* | Comma separated list of sample rates to allow for the card matching `<selector>` (card id, index, or name with spaces replaced by underscores). Empty means all rates. |
 | `card.<selector>.hbr`     | bool   | *(driver)* | Force high bit rate passthrough (8 channels at 192 kHz of IEC 61937 data, needed for Dolby TrueHD and DTS-HD Master Audio) on or off for the HDMI outputs of the card. Unset: on for HDA (Intel, NVIDIA Tegra, ...), where a head that can not do it fails cleanly and is then left out, off for other drivers, which may send garbage instead. |
 | `card.<selector>.bits`    | string | *(all)* | Comma separated list of sample widths (`8`, `16`, `24`, `32`) to allow for the card matching `<selector>`; a width keeps every format of that width, so `24` keeps both `S24_3LE` and `S24_LE` and `32` keeps `S32_LE` and `FLOAT_LE`. Empty means all. |
+| `card.<selector>.ac97_front_panel` | bool | `false` | The PC's front panel is an AC97 one, which has no jack sense lines, like the "AC97 front panel" option of Windows drivers. The HAL marks the front panel headphone and microphone jacks of the card's HD Audio codecs as not detectable before it opens the card. The kernel then stops muting the rear output for them. Without UCM (plain HDA cards) the front headphones share the rear output's PCM and play along with it. With a UCM profile they become a bus output (e.g. "PCH: Headphones") to pick in Default audio devices, since Android can never be told they were plugged in. `false` puts the driver's pin configuration back. See "AC97 front panels". |
 
 ## Device model
 

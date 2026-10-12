@@ -15,6 +15,7 @@
 
 #include "Properties.h"
 #include "alsa/AlsaCard.h"
+#include "alsa/HdaFrontPanel.h"
 #include "routing/Endpoint.h"
 #include "ucm/UcmManager.h"
 
@@ -61,6 +62,12 @@ class DeviceInventory {
     DeviceInventory() = default;
 
     void SelectCards(const Properties& properties);
+    void ConfigureFrontPanels(const Properties& properties);
+    // Whether the card's front panel jacks were marked as not detectable.
+    bool HasAc97FrontPanel(int card) const;
+    // Turns wired templates of an AC97 front panel into bus ports.
+    void DemoteUndetectableJacks(const alsa::CardInfo& card, const ucm::UcmManager& ucm,
+                                 size_t first_endpoint);
     void CollectCandidates(const Properties& properties);
     void CollectFromUcm(const alsa::CardInfo& card, ucm::UcmManager& ucm);
     void CollectFromPcmDevices(const alsa::CardInfo& card);
@@ -73,6 +80,8 @@ class DeviceInventory {
     // The settings discovery ran with, also for USB cards connected later.
     Properties properties_;
     std::vector<alsa::CardInfo> cards_;
+    // By card index, for cards with `ac97_front_panel`.
+    std::map<int, alsa::FrontPanelResult> front_panels_;
     int primary_card_ = -1;
     std::map<int, std::unique_ptr<ucm::UcmManager>> ucm_managers_;
     std::vector<Endpoint> endpoints_;
