@@ -73,7 +73,8 @@ choice in device-protected storage and applies it again on
   with them on trial; a dialog then asks to keep them, and the HAL reverts on
   its own after 30 seconds or when it fails to start with them. **Reset to
   device defaults** drops everything set here. Passthrough formats are
-  picked from the ones this HAL build can pack.
+  picked from the ones this HAL build can pack. *AC97 front panel* (per card) is
+  for PCs whose front jacks have no plug detection (see the HAL's README).
 
 ## Android TV
 

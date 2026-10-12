@@ -309,7 +309,7 @@ class HalSettingsFragment : SettingsFragment() {
                 Group(R.string.settings_group_debug, listOf("log.verbose")),
             )
 
-        val CARD_SUFFIXES = listOf("rates", "bits", "hbr")
+        val CARD_SUFFIXES = listOf("rates", "bits", "hbr", "ac97_front_panel")
 
         val TITLES =
             mapOf(
@@ -337,6 +337,7 @@ class HalSettingsFragment : SettingsFragment() {
                 "rates" to R.string.setting_card_rates,
                 "bits" to R.string.setting_card_bits,
                 "hbr" to R.string.setting_card_hbr,
+                "ac97_front_panel" to R.string.setting_card_ac97_front_panel,
             )
     }
 }
