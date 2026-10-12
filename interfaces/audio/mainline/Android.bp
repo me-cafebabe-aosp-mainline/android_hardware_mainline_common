@@ -71,6 +71,7 @@ cc_binary {
         "alsa/AlsaFormat.cpp",
         "alsa/AlsaMixer.cpp",
         "alsa/AlsaPcm.cpp",
+        "alsa/HdaFrontPanel.cpp",
         "passthrough/AlsaHdmiControl.cpp",
         "passthrough/Eld.cpp",
         "passthrough/Encoder.cpp",

@@ -69,6 +69,8 @@ alsa/                      Thin C++ wrappers over alsa-lib. No Android types exc
   AlsaControls.*           Generic snd_ctl access: list / write the user adjustable
                            MIXER controls (control interface's mixer).
   AlsaError.*              RAII handle types, error strings, alsa-lib error handler.
+  HdaFrontPanel.*          AC97 front panel workaround: front jack pins of HD Audio
+                           codecs without presence detection (sysfs, reconfig).
 ucm/                       alsa-lib Use Case Manager.
   UcmManager.*             snd_use_case_mgr_t wrapper: boot sequences, verb, devices
                            with their values, enable/disable with conflict handling.
