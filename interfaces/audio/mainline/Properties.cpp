@@ -132,6 +132,7 @@ std::vector<Spec> CardSpecs(const std::string& selector) {
             {prefix + "bits", Spec::Type::kIntList, 8, 32},
             {prefix + "hbr", Spec::Type::kBool},
             {prefix + "ac97_front_panel", Spec::Type::kBool},
+            {prefix + "ucm_hda", Spec::Type::kBool},
     };
 }
 
@@ -207,6 +208,7 @@ Properties::CardProperties Properties::ForCard(const std::string& card_id, int c
         merged.bits.insert(bits.begin(), bits.end());
         if (!merged.hbr.has_value()) merged.hbr = source.OptionalBool(prefix + "hbr");
         merged.ac97_front_panel |= source.Bool(prefix + "ac97_front_panel", false);
+        merged.ucm_hda |= source.Bool(prefix + "ucm_hda", false);
     }
     return merged;
 }
@@ -226,7 +228,7 @@ std::optional<Properties::Spec> Properties::SpecOf(const std::string& key) {
     }
     // Selectors are card ids, indexes or names with underscores for spaces.
     static const std::regex kCardKey(
-            R"(card\.([A-Za-z0-9_\-]+)\.(rates|bits|hbr|ac97_front_panel))");
+            R"(card\.([A-Za-z0-9_\-]+)\.(rates|bits|hbr|ac97_front_panel|ucm_hda))");
     std::smatch match;
     if (!std::regex_match(key, match, kCardKey)) return std::nullopt;
     for (const Spec& spec : CardSpecs(match[1].str())) {
@@ -289,6 +291,7 @@ std::map<std::string, std::string> Properties::Values(
         values[prefix + "hbr"] = hbr.has_value() ? BoolText(*hbr) : "";
         values[prefix + "ac97_front_panel"] =
                 BoolText(source.Bool(prefix + "ac97_front_panel", false));
+        values[prefix + "ucm_hda"] = BoolText(source.Bool(prefix + "ucm_hda", false));
     }
     return values;
 }

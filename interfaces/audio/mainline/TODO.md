@@ -28,7 +28,8 @@ here yet.
 | `mixer.toggle` (switches off and on in the mixer init, for QEMU cards whose host audio stream does not follow the guest's unchanged mixer values) | not verified |
 | TvSettings entry (Display & sound slot, `TvSliceProvider`, `MainlineAudioTvSettingsOverlay`) and the pages with a remote | not built |
 | AC97 front panel (`card.<selector>.ac97_front_panel`) without UCM: pin override, codec reconfiguration at start and restore, device policy | ECS G41T-CM3 (ALC662): front headset plays along with the rear jack |
-| AC97 front panel with UCM: front headphones as a bus output | not verified; no HDA card uses UCM yet (the HDA profile wants `@HDA`) |
+| `card.<selector>.ucm_hda`: HDA cards with alsa-ucm-conf's HDA profile (separate speaker / headphones ports, jack switching) | VIA VT1708S (B75 desktop): line out plays and mics are listed, with the alsa-ucm-conf HDA fixes. Conexant CX20590 (Lenovo G480): with the jack mic headset template, Android connects the plugged headset and plays on Headphones with the speaker off, and back on Speaker unplugged. Output volumes at unity on both (Realtek ALC887 B85, CX20590). Not verified: capture by ear, HDMI / passthrough with UCM, the AC97 front panel with UCM on the G41 |
+| AC97 front panel with UCM: front headphones as a bus output | Realtek ALC887 (B85): "PCH: Headphones", picked in Default audio devices, plays |
 
 ## Known issues
 

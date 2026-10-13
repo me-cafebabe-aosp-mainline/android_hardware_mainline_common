@@ -332,7 +332,11 @@ void DeviceInventory::CollectCandidates(const Properties& properties) {
     for (const auto& card : cards_) {
         std::unique_ptr<ucm::UcmManager> ucm;
         if (properties.ucm_enabled) {
-            ucm = ucm::UcmManager::Open(card.index, properties.ucm_verb);
+            std::map<std::string, std::string> variables;
+            if (properties.ForCard(card.id, card.index, card.name).ucm_hda) {
+                variables["HDA"] = "1";
+            }
+            ucm = ucm::UcmManager::Open(card.index, properties.ucm_verb, variables);
         }
         if (ucm != nullptr) {
             CollectFromUcm(card, *ucm);

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -46,8 +47,11 @@ class UcmManager {
     // Opens the UCM profile of `card_index` ("hw:<index>"), runs the boot
     // sequences and selects `preferred_verb` (falling back to the first verb
     // of the profile). Returns nullptr when no profile exists or it fails to
-    // load.
-    static std::unique_ptr<UcmManager> Open(int card_index, const std::string& preferred_verb);
+    // load. `variables` are the profile's open arguments ("HDA" -> "1" sets
+    // ${var:@HDA}).
+    static std::unique_ptr<UcmManager> Open(
+            int card_index, const std::string& preferred_verb,
+            const std::map<std::string, std::string>& variables = {});
     ~UcmManager();
 
     UcmManager(const UcmManager&) = delete;

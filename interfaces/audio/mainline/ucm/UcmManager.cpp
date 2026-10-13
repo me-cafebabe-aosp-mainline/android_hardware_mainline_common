@@ -62,10 +62,18 @@ UcmManager::~UcmManager() {
     }
 }
 
-std::unique_ptr<UcmManager> UcmManager::Open(int card_index, const std::string& preferred_verb) {
+std::unique_ptr<UcmManager> UcmManager::Open(int card_index, const std::string& preferred_verb,
+                                             const std::map<std::string, std::string>& variables) {
     const std::string card_name = "hw:" + std::to_string(card_index);
+    // alsa-lib's open arguments: "<<<HDA=1>>>hw:0".
+    std::string open_name = card_name;
+    if (!variables.empty()) {
+        std::vector<std::string> arguments;
+        for (const auto& [name, value] : variables) arguments.push_back(name + "=" + value);
+        open_name = "<<<" + ::android::base::Join(arguments, " ") + ">>>" + card_name;
+    }
     snd_use_case_mgr_t* mgr = nullptr;
-    if (const int err = snd_use_case_mgr_open(&mgr, card_name.c_str()); err < 0) {
+    if (const int err = snd_use_case_mgr_open(&mgr, open_name.c_str()); err < 0) {
         // -ENOENT / -ENXIO: no profile for this card. Perfectly normal.
         LOG(INFO) << __func__ << ": no usable UCM profile for " << card_name << ": "
                   << ErrorString(err);

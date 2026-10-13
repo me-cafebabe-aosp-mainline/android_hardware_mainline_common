@@ -106,6 +106,9 @@ struct Properties {
         std::optional<bool> hbr;
         // Front jacks without detection (alsa::ConfigureFrontPanel()).
         bool ac97_front_panel = false;
+        // Open the card's UCM profile with HDA=1: the HDA profile is only
+        // used when asked for.
+        bool ucm_hda = false;
     };
 
     static Properties Load(std::map<std::string, std::string> overrides = {});
