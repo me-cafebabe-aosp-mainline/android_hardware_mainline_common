@@ -306,6 +306,18 @@ bool DeviceInventory::HasAc97FrontPanel(int card) const {
                                          it->second == alsa::FrontPanelResult::kUnchanged);
 }
 
+namespace {
+
+// Whether the kernel reports plugs of the device's jack: Android connects a
+// template only on such a report.
+bool HasDetectableJack(int card, const ucm::UcmDevice& device) {
+    const std::string& jack = device.jack_control;
+    return !jack.empty() && jack.find("Phantom") == std::string::npos &&
+           alsa::ReadJackState(card, jack).has_value();
+}
+
+}  // namespace
+
 void DeviceInventory::DemoteUndetectableJacks(const alsa::CardInfo& card,
                                               const ucm::UcmManager& ucm, size_t first_endpoint) {
     // Android never connects a template whose plug the kernel can't report.
@@ -318,12 +330,10 @@ void DeviceInventory::DemoteUndetectableJacks(const alsa::CardInfo& card,
         }
         const ucm::UcmDevice* device = ucm.FindDevice(e.ucm_device);
         if (device == nullptr || device->jack_control.empty()) continue;
-        const std::string& jack = device->jack_control;
-        const bool detectable = jack.find("Phantom") == std::string::npos &&
-                                alsa::ReadJackState(card.index, jack).has_value();
-        if (detectable) continue;
+        if (HasDetectableJack(card.index, *device)) continue;
         LOG(INFO) << __func__ << ": \"" << e.name << "\" (" << routing::ToString(e.role)
-                  << ") has no jack detection (\"" << jack << "\"), making it a bus port";
+                  << ") has no jack detection (\"" << device->jack_control
+                  << "\"), making it a bus port";
         e.role = e.is_input ? DeviceRole::kBusIn : DeviceRole::kBusOut;
     }
 }
@@ -385,6 +395,26 @@ void DeviceInventory::CollectFromUcm(const alsa::CardInfo& card, ucm::UcmManager
         }
     }
     if (HasAc97FrontPanel(card.index)) DemoteUndetectableJacks(card, ucm, first_endpoint);
+
+    // A plugged mic makes Android report a headset (OUT_HEADSET + IN_HEADSET),
+    // also for a combo jack or a separate mic jack whose UCM device is a plain
+    // "Mic" the kernel switches to. Offer that mic as the headset mic as well.
+    const auto is_headset_mic = [](const Endpoint& e) { return e.role == DeviceRole::kHeadsetMic; };
+    const auto new_begin = endpoints_.begin() + static_cast<ptrdiff_t>(first_endpoint);
+    if (std::none_of(new_begin, endpoints_.end(), is_headset_mic)) {
+        const Endpoint* jack_mic = nullptr;
+        for (auto it = new_begin; it != endpoints_.end(); ++it) {
+            if (it->role != DeviceRole::kMic) continue;
+            const ucm::UcmDevice* device = ucm.FindDevice(it->ucm_device);
+            if (device == nullptr || !HasDetectableJack(card.index, *device)) continue;
+            if (jack_mic == nullptr || it->priority > jack_mic->priority) jack_mic = &*it;
+        }
+        if (jack_mic != nullptr) {
+            Endpoint headset_mic = *jack_mic;
+            headset_mic.role = DeviceRole::kHeadsetMic;
+            endpoints_.push_back(std::move(headset_mic));
+        }
+    }
 
     // UCM commonly calls the playback path "Headphones" and the capture path
     // "Headset". Android connects OUT_HEADSET (not OUT_HEADPHONE) with IN_HEADSET

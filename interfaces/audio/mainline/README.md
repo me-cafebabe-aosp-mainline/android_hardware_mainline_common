@@ -200,6 +200,10 @@ Rules applied on top:
   output template, unless the card already has a separate headset playback
   path. Android connects the headset output and mic together for a plug with
   a microphone, and the headphone output for a plug without one.
+* Without a UCM headset mic, a UCM mic with a detectable jack (laptop combo
+  jacks, desktop mic jacks; the kernel switches between it and the internal
+  mic) is also offered as the headset mic, so that the above applies: Android
+  reports a headset whenever the mic jack senses a plug.
 * When the primary card has no speaker / mic, the best remaining path is
   promoted, primary card first, then the other cards. Outputs: line out, a bus
   output, headphones, headset, S/PDIF. Inputs: a bus input, then the headset

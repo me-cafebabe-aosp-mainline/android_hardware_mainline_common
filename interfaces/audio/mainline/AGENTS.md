@@ -306,7 +306,10 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   Promoting a wired template to a default device retains the template so
   framework jack events can still route to it. When UCM has headphone playback
   and headset-mic capture but no headset playback, the headphone path also
-  supplies an `OUT_HEADSET` template for four-pole plugs.
+  supplies an `OUT_HEADSET` template for four-pole plugs. A UCM mic with a
+  detectable jack counts as that headset mic when UCM has none: on a combo
+  jack the kernel switches the one "Mic" device between the internal and the
+  jack mic, while Android reports a headset.
 * Master volume / mute are unsupported on purpose (framework does it
   digitally); mic mute is done by zeroing captured data.
 * USB is handled the AOSP way (templates + `connectExternalDevice` with an
