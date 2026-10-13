@@ -141,7 +141,7 @@ starts.
 | `null_mic`                | bool   | `false` | Expose a silent built-in mic when no capture path exists (bring-up only). Without it, no built-in mic is declared unless a capture path is found. |
 | `ucm.enabled`             | bool   | `true`  | Use UCM profiles when available. |
 | `ucm.verb`                | string | `HiFi`  | UCM verb to select (falls back to the first verb of the profile). |
-| `mixer.init`              | bool   | `true`  | For cards *without* a UCM profile and for USB cards: unmute and set default volumes at start-up. |
+| `mixer.init`              | bool   | `true`  | For cards *without* a UCM profile and for USB cards: unmute and set default volumes at start-up. The analog loopbacks of inputs (mic, line in, CD, ... playback controls) are muted instead, like `alsactl init` does. |
 | `mixer.playback_percent`  | int    | `100`   | Playback volume applied by `mixer.init`. |
 | `mixer.capture_percent`   | int    | `80`    | Capture volume applied by `mixer.init`. |
 | `mixer.toggle`            | bool   | `false` | Turn every switch off and on again in `mixer.init`. For emulated sound cards (QEMU with a host audio backend such as CoreAudio) that apply the mixer to their host stream only when the guest writes it: the guest driver skips a write that does not change its cached value, so the card would never see the unmuted state. |

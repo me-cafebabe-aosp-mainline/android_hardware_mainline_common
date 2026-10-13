@@ -11,10 +11,12 @@
 #include <cctype>
 #include <cmath>
 #include <initializer_list>
+#include <set>
 #include <string_view>
 
 #include <alsa/asoundlib.h>
 #include <android-base/logging.h>
+#include <android-base/strings.h>
 
 #include "alsa/AlsaError.h"
 
@@ -39,6 +41,27 @@ bool ContainsAny(const std::string& lower, std::initializer_list<const char*> ne
 bool IsBlacklisted(const std::string& lower_name) {
     return ContainsAny(lower_name, {"beep", "loopback", "boost", "analog loopback", "sidetone",
                                     "auto-mute", "auto gain", "agc", "iec958", "spdif", "jack"});
+}
+
+// The playback part of an input is its analog loopback into the outputs (HDA
+// "Front Mic Playback", AC97 "Line", "CD"). alsactl init mutes it: unmuted, the
+// inputs are heard on the outputs, a mic as feedback.
+bool IsInputLoopback(const std::string& lower_name) {
+    static const std::set<std::string> kInputs = {"line", "line in", "cd", "aux", "phone", "video"};
+    if (kInputs.count(lower_name) > 0) return true;
+    for (const std::string& word : ::android::base::Split(lower_name, " ")) {
+        if (word == "mic" || word == "microphone") return true;
+    }
+    return false;
+}
+
+void MuteLoopback(snd_mixer_elem_t* elem, const std::string& name) {
+    if (!snd_mixer_selem_has_playback_switch(elem)) return;
+    if (const int err = snd_mixer_selem_set_playback_switch_all(elem, 0); err < 0) {
+        LOG(DEBUG) << "  '" << name << "' loopback off: " << ErrorString(err);
+    } else {
+        LOG(DEBUG) << "  '" << name << "' loopback off";
+    }
 }
 
 // Opens the simple mixer of a card. Returns nullptr on failure.
@@ -101,8 +124,7 @@ void InitPlaybackElement(snd_mixer_elem_t* elem, const std::string& name, int pe
     }
 }
 
-void InitCaptureElement(snd_mixer_elem_t* elem, const std::string& name, int percent,
-                        bool toggle) {
+void InitCaptureElement(snd_mixer_elem_t* elem, const std::string& name, int percent, bool toggle) {
     if (snd_mixer_selem_has_capture_switch(elem)) {
         if (toggle) {
             if (const int err = snd_mixer_selem_set_capture_switch_all(elem, 0); err < 0) {
@@ -148,7 +170,11 @@ bool InitializeMixer(int card, const MixerInitOptions& options) {
             LOG(DEBUG) << "  '" << name << "' skipped";
             continue;
         }
-        InitPlaybackElement(elem, name, options.playback_percent, options.toggle_switches);
+        if (IsInputLoopback(lower)) {
+            MuteLoopback(elem, name);
+        } else {
+            InitPlaybackElement(elem, name, options.playback_percent, options.toggle_switches);
+        }
         InitCaptureElement(elem, name, options.capture_percent, options.toggle_switches);
     }
     return true;
