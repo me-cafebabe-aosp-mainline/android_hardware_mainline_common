@@ -31,6 +31,10 @@ struct UcmDevice {
     int playback_priority = 0;  // "PlaybackPriority", higher is preferred
     int capture_priority = 0;   // "CapturePriority"
     std::string jack_control;   // "JackControl", name of the jack kcontrol
+    // "PlaybackMixerElem" / "PlaybackMasterElem": the simple mixer elements
+    // a desktop sound server would use as the device's hardware volume.
+    std::string playback_mixer_elem;
+    std::string playback_master_elem;
     std::vector<std::string> conflicting_devices;
     std::vector<std::string> supported_devices;
 
@@ -59,6 +63,8 @@ class UcmManager {
 
     int card_index() const { return card_index_; }
     const std::string& verb() const { return verb_; }
+    // The open arguments the profile was loaded with ("HDA" -> "1").
+    const std::map<std::string, std::string>& variables() const { return variables_; }
     const std::vector<UcmDevice>& devices() const { return devices_; }
     const UcmDevice* FindDevice(const std::string& name) const;
 
@@ -85,6 +91,7 @@ class UcmManager {
     std::mutex lock_;
     snd_use_case_mgr_t* mgr_;
     const int card_index_;
+    std::map<std::string, std::string> variables_;
     std::string verb_;
     std::vector<UcmDevice> devices_;
 };

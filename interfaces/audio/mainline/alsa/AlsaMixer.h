@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace aidl::android::hardware::audio::core::mainline::alsa {
 
@@ -34,5 +35,12 @@ struct MixerInitOptions {
 // With `toggle_switches` each switch is turned off first, so that turning it
 // on is a change the card sees.
 bool InitializeMixer(int card, const MixerInitOptions& options);
+
+// Sets the playback volume of the named simple mixer elements of `card` to
+// 0 dB, or to their maximum when that is lower. Android applies the volume
+// digitally, so hardware volume left below unity (UCM boot sequences set 60%)
+// only makes the output quieter. Missing elements and elements without a dB
+// scale are skipped.
+void SetPlaybackLevelUnity(int card, const std::vector<std::string>& elements);
 
 }  // namespace aidl::android::hardware::audio::core::mainline::alsa

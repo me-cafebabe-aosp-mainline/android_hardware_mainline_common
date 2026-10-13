@@ -80,6 +80,7 @@ std::unique_ptr<UcmManager> UcmManager::Open(int card_index, const std::string& 
         return nullptr;
     }
     std::unique_ptr<UcmManager> manager(new UcmManager(mgr, card_index));
+    manager->variables_ = variables;
 
     {
         std::lock_guard guard(manager->lock_);
@@ -226,6 +227,8 @@ void UcmManager::LoadDevices() {
         device.playback_priority = get_int("PlaybackPriority");
         device.capture_priority = get_int("CapturePriority");
         device.jack_control = get_string("JackControl");
+        device.playback_mixer_elem = get_string("PlaybackMixerElem");
+        device.playback_master_elem = get_string("PlaybackMasterElem");
         device.conflicting_devices = GetList("_conflictingdevs" + suffix);
         device.supported_devices = GetList("_supporteddevs" + suffix);
         devices_.push_back(std::move(device));

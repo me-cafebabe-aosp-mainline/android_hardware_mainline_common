@@ -200,4 +200,31 @@ bool InitializeMixer(int card, const MixerInitOptions& options) {
     return true;
 }
 
+void SetPlaybackLevelUnity(int card, const std::vector<std::string>& elements) {
+    if (elements.empty()) return;
+    MixerHandle mixer = OpenMixer(card);
+    if (mixer == nullptr) return;
+    snd_mixer_selem_id_t* id = nullptr;
+    snd_mixer_selem_id_alloca(&id);
+    for (const std::string& name : elements) {
+        snd_mixer_selem_id_set_name(id, name.c_str());
+        snd_mixer_selem_id_set_index(id, 0);
+        snd_mixer_elem_t* elem = snd_mixer_find_selem(mixer.get(), id);
+        if (elem == nullptr || !snd_mixer_selem_has_playback_volume(elem)) continue;
+        // Without a dB scale nothing says what the maximum is: leave it.
+        long min_db = 0, max_db = 0;
+        if (snd_mixer_selem_get_playback_dB_range(elem, &min_db, &max_db) < 0 || max_db <= min_db) {
+            continue;
+        }
+        // dB values are in 1/100 dB; round down so that 0 dB is never exceeded.
+        const int err = snd_mixer_selem_set_playback_dB_all(elem, std::min(0L, max_db), -1);
+        if (err < 0) {
+            LOG(WARNING) << __func__ << ": card " << card << " '" << name
+                         << "': " << ErrorString(err);
+        } else {
+            LOG(DEBUG) << __func__ << ": card " << card << " '" << name << "' at unity";
+        }
+    }
+}
+
 }  // namespace aidl::android::hardware::audio::core::mainline::alsa

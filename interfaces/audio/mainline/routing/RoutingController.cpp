@@ -11,6 +11,8 @@
 
 #include <android-base/logging.h>
 
+#include "alsa/AlsaMixer.h"
+
 namespace aidl::android::hardware::audio::core::mainline::routing {
 
 RoutingController::RoutingController(std::shared_ptr<DeviceInventory> inventory)
@@ -43,6 +45,19 @@ void RoutingController::Acquire(const Endpoint& endpoint) {
     } else {
         LOG(INFO) << __func__ << ": enabled UCM device \"" << endpoint.ucm_device << "\" on card "
                   << endpoint.card;
+        // Only the HDA profile leaves its volumes for a desktop sound server;
+        // other profiles (ASoC boards and phones) set amplifier gains on
+        // purpose. Before the listener, which re-applies the user's mixer
+        // values.
+        if (const ucm::UcmDevice* device = ucm->FindDevice(endpoint.ucm_device);
+            device != nullptr && device->HasPlayback() && ucm->variables().count("HDA") > 0) {
+            std::vector<std::string> elements;
+            for (const std::string* e :
+                 {&device->playback_master_elem, &device->playback_mixer_elem}) {
+                if (!e->empty()) elements.push_back(*e);
+            }
+            alsa::SetPlaybackLevelUnity(endpoint.card, elements);
+        }
         if (device_enabled_listener_) device_enabled_listener_(endpoint.card);
     }
 }
