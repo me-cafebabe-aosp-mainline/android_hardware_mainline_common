@@ -64,6 +64,22 @@ void MuteLoopback(snd_mixer_elem_t* elem, const std::string& name) {
     }
 }
 
+// Without UCM the kernel's auto-mute switches between speakers and headphones;
+// whatever disabled it (a run with UCM, alsactl) would leave both playing.
+void EnableAutoMute(snd_mixer_elem_t* elem, const std::string& name) {
+    if (!snd_mixer_selem_is_enumerated(elem)) return;
+    unsigned int item = 0;
+    if (snd_mixer_selem_get_enum_item(elem, SND_MIXER_SCHN_MONO, &item) < 0) return;
+    char text[64] = {};
+    if (snd_mixer_selem_get_enum_item_name(elem, item, sizeof(text), text) < 0) return;
+    if (std::string_view(text) != "Disabled" || snd_mixer_selem_get_enum_items(elem) < 2) return;
+    if (const int err = snd_mixer_selem_set_enum_item(elem, SND_MIXER_SCHN_MONO, 1); err < 0) {
+        LOG(DEBUG) << "  '" << name << "' enable: " << ErrorString(err);
+    } else {
+        LOG(DEBUG) << "  '" << name << "' enabled";
+    }
+}
+
 // Opens the simple mixer of a card. Returns nullptr on failure.
 MixerHandle OpenMixer(int card) {
     snd_mixer_t* raw = nullptr;
@@ -166,6 +182,10 @@ bool InitializeMixer(int card, const MixerInitOptions& options) {
         if (!snd_mixer_selem_is_active(elem)) continue;
         const std::string name = snd_mixer_selem_get_name(elem);
         const std::string lower = ToLower(name);
+        if (lower == "auto-mute mode") {
+            EnableAutoMute(elem, name);
+            continue;
+        }
         if (IsBlacklisted(lower)) {
             LOG(DEBUG) << "  '" << name << "' skipped";
             continue;
