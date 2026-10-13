@@ -196,6 +196,7 @@
     <string name="setting_card_bits">Sample widths (bits)</string>
     <string name="setting_card_hbr">HDMI high bit rate</string>
     <string name="setting_card_ac97_front_panel">AC97 front panel (front jacks without detection)</string>
+    <string name="setting_card_ucm_hda">UCM profile for HD Audio (separate speaker and headphones)</string>
     <string name="confirm_title">Keep these audio settings?</string>
     <string name="confirm_message">The audio HAL restarted with the new settings. Reverting in <xliff:g id="seconds">%1$d</xliff:g> s.</string>
     <string name="confirm_message_plain">The audio HAL restarted with the new settings.</string>
