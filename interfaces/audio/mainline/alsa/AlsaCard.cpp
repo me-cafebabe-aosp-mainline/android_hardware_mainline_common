@@ -62,6 +62,34 @@ void QueryPcmDevice(snd_ctl_t* ctl, snd_pcm_info_t* pcm_info, int device, PcmDev
     }
 }
 
+// Names the pair of a device's two channel playback map, as cards with one PCM
+// device per pair (CA0106) report them.
+std::string PlaybackChannelsName(int card, int device) {
+    snd_pcm_chmap_query_t** maps =
+            snd_pcm_query_chmaps_from_hw(card, device, 0, SND_PCM_STREAM_PLAYBACK);
+    if (maps == nullptr) return "";
+    std::string result;
+    for (snd_pcm_chmap_query_t** map = maps; *map != nullptr; ++map) {
+        const snd_pcm_chmap_t& chmap = (*map)->map;
+        if (chmap.channels != 2) continue;
+        const auto is = [&chmap](unsigned int a, unsigned int b) {
+            return chmap.pos[0] == a && chmap.pos[1] == b;
+        };
+        if (is(SND_CHMAP_FL, SND_CHMAP_FR)) {
+            result = "Front";
+        } else if (is(SND_CHMAP_RL, SND_CHMAP_RR)) {
+            result = "Rear";
+        } else if (is(SND_CHMAP_FC, SND_CHMAP_LFE)) {
+            result = "Center/LFE";
+        } else if (is(SND_CHMAP_SL, SND_CHMAP_SR)) {
+            result = "Side";
+        }
+        break;
+    }
+    snd_pcm_free_chmaps(maps);
+    return result;
+}
+
 }  // namespace
 
 // --- PcmDeviceInfo ---------------------------------------------------------
@@ -174,6 +202,7 @@ std::optional<CardInfo> QueryCard(int index) {
         info.card = index;
         info.device = device;
         QueryPcmDevice(ctl, pcm_info.get(), device, &info);
+        if (info.playback) info.channels = PlaybackChannelsName(index, device);
         if (info.playback || info.capture) {
             card.pcms.push_back(std::move(info));
         }

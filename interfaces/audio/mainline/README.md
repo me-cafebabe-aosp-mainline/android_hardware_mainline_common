@@ -186,7 +186,9 @@ Rules applied on top:
 
 * Only the *primary card* provides Speaker, Earpiece and Mic; the same roles
   on other cards become bus ports (`<card id>: <device>`), which apps can
-  select explicitly but which never hijack the default routing.
+  select explicitly but which never hijack the default routing. Devices of a
+  card without UCM that share a PCM name are named after their channel pair
+  instead (`CA0106: Front`, `CA0106: Rear`, ...), or numbered.
 * The framework can connect only one external device per type, so only the
   highest priority template of each kind is kept; the others become bus ports.
   For HDMI, the template's backing head is chosen from the plugged heads at

@@ -20,6 +20,9 @@ struct PcmDeviceInfo {
     std::string name;  // e.g. "ALC256 Analog", "HDMI 0"
     bool playback = false;
     bool capture = false;
+    // "Front", "Rear", "Center/LFE" or "Side" when the stereo playback
+    // channel map is that pair, else empty.
+    std::string channels;
 
     // "hw:<card>,<device>"
     std::string HwName() const;

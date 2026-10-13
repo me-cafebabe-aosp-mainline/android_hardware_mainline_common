@@ -405,6 +405,8 @@ void DeviceInventory::CollectFromUcm(const alsa::CardInfo& card, ucm::UcmManager
 }
 
 void DeviceInventory::CollectFromPcmDevices(const alsa::CardInfo& card) {
+    const size_t first_endpoint = endpoints_.size();
+    std::vector<const alsa::PcmDeviceInfo*> sources;  // The PCM device of each new endpoint.
     bool first_analog_playback = true;
     bool first_analog_capture = true;
     for (const alsa::PcmDeviceInfo& pcm : card.pcms) {
@@ -432,6 +434,7 @@ void DeviceInventory::CollectFromPcmDevices(const alsa::CardInfo& card) {
             // Lower device numbers first.
             endpoint.priority = 1000 - pcm.device;
             endpoints_.push_back(std::move(endpoint));
+            sources.push_back(&pcm);
         }
         if (pcm.capture) {
             Endpoint endpoint;
@@ -448,7 +451,29 @@ void DeviceInventory::CollectFromPcmDevices(const alsa::CardInfo& card) {
             endpoint.name = pcm.name;
             endpoint.priority = 1000 - pcm.device;
             endpoints_.push_back(std::move(endpoint));
+            sources.push_back(&pcm);
         }
+    }
+
+    // Several devices of a card can share a name (CA0106: "CA0106" four times);
+    // their bus ports would look alike in the device pickers.
+    const auto begin = endpoints_.begin() + static_cast<ptrdiff_t>(first_endpoint);
+    std::vector<bool> shared;
+    for (auto it = begin; it != endpoints_.end(); ++it) {
+        shared.push_back(std::count_if(begin, endpoints_.end(), [&it](const Endpoint& other) {
+                             return other.is_input == it->is_input && other.name == it->name;
+                         }) > 1);
+    }
+    for (size_t i = 0; i < shared.size(); ++i) {
+        if (!shared[i]) continue;
+        Endpoint& e = endpoints_[first_endpoint + i];
+        const alsa::PcmDeviceInfo& pcm = *sources[i];
+        const bool unique_channels =
+                !e.is_input && !pcm.channels.empty() &&
+                std::count_if(card.pcms.begin(), card.pcms.end(), [&pcm](const auto& other) {
+                    return other.playback && other.channels == pcm.channels;
+                }) == 1;
+        e.name = unique_channels ? pcm.channels : e.name + " " + std::to_string(pcm.device);
     }
 }
 
