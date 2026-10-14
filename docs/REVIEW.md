@@ -30,6 +30,9 @@ Consistency cuts across the whole change, not just source formatting:
   commit instead of left to drift (`docs/CODE_STYLE.md` → Documentation).
   Terminology in the docs matches what the code actually calls things, and
   cross-references between docs still point somewhere real.
+- **APEX**: a new or changed APEX keeps rebootless update working: the
+  manifest sets `supportsRebootlessUpdate` and the rc starts every service
+  from `apex.<name>.ready=true` (`docs/APEX_REBOOTLESS_UPDATE.md`).
 - **Code behavior**: the same kind of input/situation is handled the same
   way across the component — don't fix one call path while leaving a
   symmetric one behaving differently, and don't add a special case that

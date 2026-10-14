@@ -23,6 +23,9 @@ Written for both AI agents and human contributors.
   components legitimately can't or don't need to (e.g. a standalone tool).
   If you do ship an APEX, follow `docs/NAMING_CONVENTIONS.md` for the APEX
   module vs. manifest naming scheme; do not touch the manifest name.
+- An APEX must support rebootless update: set `supportsRebootlessUpdate` and
+  start its services from `apex.<name>.ready=true`; see
+  `docs/APEX_REBOOTLESS_UPDATE.md`.
 - C++ is preferred, but not a hard requirement; see `docs/CODE_STYLE.md` for
   language, style, error handling, and formatting, including the SPDX header
   for new files.

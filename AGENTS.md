@@ -38,6 +38,9 @@ have to read what's relevant to the task at hand:
   property naming patterns for a new component.
 - `docs/INITIAL_IMPLEMENTATION_GUIDELINES.md` — shared requirements,
   references, and guidelines for bringing up a brand-new component.
+- `docs/APEX_REBOOTLESS_UPDATE.md` — the manifest flag and init rc trigger
+  every APEX needs so that `adb install --non-staged` updates it without a
+  reboot.
 - `docs/HAL_APPS.md` — a settings app and control interface for a HAL:
   APEX packaging, permissions, SELinux, interface stability, state,
   Android TV.

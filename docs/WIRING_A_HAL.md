@@ -22,7 +22,7 @@ lives in `device/mainline/common/optional/<domain>-hal_<name>/`.
 |---|----|------|
 | 1 | Name things | `docs/NAMING_CONVENTIONS.md` |
 | 2 | Plan first | `docs/INITIAL_IMPLEMENTATION_GUIDELINES.md`: get a confirmed plan |
-| 3 | Build the HAL | Ship as an APEX if possible; add `vintf` fragment and `.rc` |
+| 3 | Build the HAL | Ship as an APEX if possible; add `vintf` fragment and `.rc`; an APEX supports rebootless update (`docs/APEX_REBOOTLESS_UPDATE.md`) |
 | 4 | Add `AGENTS.md`, `CLAUDE.md`, `README.md` | Next to the code |
 | 5 | Add `optional/<dir>/product.mk` (and `board.mk` / `sepolicy` if needed) | `optional/_template.mk` |
 | 6 | Add the variable to `optional/README.md` | One table per variable |
