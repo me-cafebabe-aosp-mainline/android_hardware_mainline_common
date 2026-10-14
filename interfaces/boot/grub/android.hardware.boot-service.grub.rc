@@ -2,3 +2,6 @@ service vendor.boot-default /apex/com.android.hardware.boot/bin/hw/android.hardw
     class early_hal
     user system
     group system
+
+on property:apex.com.android.hardware.boot.ready=true
+    start vendor.boot-default

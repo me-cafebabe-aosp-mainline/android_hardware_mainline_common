@@ -1,5 +1,6 @@
 {
     "name": "com.android.hardware.graphics.allocator",
+    "supportsRebootlessUpdate": true,
     "version": 1,
     "vendorBootstrap": true
 }

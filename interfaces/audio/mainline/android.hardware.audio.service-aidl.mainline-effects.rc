@@ -8,3 +8,6 @@ service vendor.audio-effect-hal-aidl-mainline /apex/com.android.hardware.audio/b
     ioprio rt 4
     task_profiles ProcessCapacityHigh HighPerformance
     onrestart restart audioserver
+
+on property:apex.com.android.hardware.audio.ready=true
+    start vendor.audio-effect-hal-aidl-mainline

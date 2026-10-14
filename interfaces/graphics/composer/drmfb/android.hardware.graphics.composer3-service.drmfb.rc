@@ -9,3 +9,6 @@ service vendor.hwcomposer-3.drmfb /vendor/bin/hw/android.hardware.graphics.compo
     capabilities SYS_NICE
     onrestart restart surfaceflinger
     task_profiles ServiceCapacityLow
+
+on property:apex.com.android.hardware.graphics.composer.ready=true
+    start vendor.hwcomposer-3.drmfb

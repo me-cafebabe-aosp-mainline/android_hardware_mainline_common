@@ -17,3 +17,6 @@ service vendor.audio-hal-aidl-mainline /apex/com.android.hardware.audio/bin/hw/a
 # directory nothing is kept across restarts.
 on early-boot
     mkdir /data/vendor/mainline_audio 0770 audioserver audio
+
+on property:apex.com.android.hardware.audio.ready=true
+    start vendor.audio-hal-aidl-mainline

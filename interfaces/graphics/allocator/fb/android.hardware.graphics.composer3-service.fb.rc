@@ -9,3 +9,6 @@ service vendor.hwcomposer-3.fb /vendor/bin/hw/android.hardware.graphics.composer
     capabilities SYS_NICE
     onrestart restart surfaceflinger
     task_profiles ServiceCapacityLow
+
+on property:apex.com.android.hardware.graphics.allocator.ready=true
+    start vendor.hwcomposer-3.fb

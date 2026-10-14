@@ -2,3 +2,6 @@ service vendor.vibrator-mainline /apex/com.android.hardware.vibrator/bin/hw/andr
     class hal
     user system
     group system input
+
+on property:apex.com.android.hardware.vibrator.ready=true
+    start vendor.vibrator-mainline

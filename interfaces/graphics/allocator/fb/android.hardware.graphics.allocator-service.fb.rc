@@ -9,3 +9,6 @@ service vendor.graphics.allocator.fb /vendor/bin/hw/android.hardware.graphics.al
     capabilities SYS_NICE
     onrestart restart surfaceflinger
     task_profiles ServiceCapacityLow
+
+on property:apex.com.android.hardware.graphics.allocator.ready=true
+    start vendor.graphics.allocator.fb
