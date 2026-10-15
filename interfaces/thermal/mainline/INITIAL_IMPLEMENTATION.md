@@ -60,6 +60,41 @@ Note that the kernel source root paths are actually symlinks.
 - The VTS (`VtsHalThermalTargetTest`) is strict about threshold array sizes and
   ordering, callback behavior, and unsupported operations. Read it before designing.
 
+## Where to start reading
+
+Paths are relative to AOSP source tree root. Read in this order before designing or
+writing code, and do not look outside these paths (see the guidelines).
+
+1. **This repository's rules**: `hardware/mainline/common/AGENTS.md`, then in
+   `hardware/mainline/common/docs/`: `INITIAL_IMPLEMENTATION_GUIDELINES.md`, `SCOPE.md`,
+   `NAMING_CONVENTIONS.md`, `CODE_STYLE.md`, `WORKFLOW.md`, `APEX_REBOOTLESS_UPDATE.md`,
+   `WIRING_A_HAL.md`, `COMMIT_CONVENTIONS.md`, `REVIEW.md`.
+2. **Layout and conventions of sibling HALs** (read for structure only, do not copy their logic):
+   `hardware/mainline/common/interfaces/vibrator/mainline` for a small single-module HAL
+   (`Android.bp`, `apex/`, `.rc`, vintf fragment, `AGENTS.md`, `README.md`), and
+   `hardware/mainline/common/interfaces/sensors/mainline` for property and
+   configuration file handling, `apex_linkerconfig.json` and `file_contexts`.
+   `hardware/mainline/common/libraries/` for where the shared library goes.
+3. **AIDL interface, example HAL and VTS**: `hardware/interfaces/thermal/aidl/android/hardware/thermal/*.aidl`,
+   `hardware/interfaces/thermal/aidl/default/` (`Thermal.cpp`, `Android.bp`, `.rc`, `.xml`, APEX files),
+   and `hardware/interfaces/thermal/aidl/vts/VtsHalThermalTargetTest.cpp`.
+4. **How the framework consumes it**: `frameworks/base/services/core/java/com/android/server/power/thermal/ThermalManagerService.java`
+   and `frameworks/native/services/powermanager/` (`Temperature.cpp`, `CoolingDevice.cpp`).
+5. **Device tree wiring and SELinux**: `device/mainline/common/optional/` (`README.md`, `options.mk`,
+   `_template.mk`, `thermal-hal_linaro-libpm/` for how a thermal HAL is selected and its `sepolicy/`),
+   and `device/mainline/common/sepolicy/vendor/`.
+6. **Platform libraries**: `system/libbase/include/android-base`.
+7. **Linux kernel**, in `kernel/mainline/android-mainline` unless stated:
+   - `Documentation/ABI/testing/sysfs-class-thermal`, `Documentation/driver-api/thermal/`
+   - `drivers/thermal/thermal_sysfs.c`, `thermal_core.c`, `thermal_netlink.c`, `thermal_hwmon.c`
+   - `include/uapi/linux/thermal.h`
+   - `drivers/thermal/cpufreq_cooling.c`, `devfreq_cooling.c`, `cpuidle_cooling.c`, `thermal-generic-adc.c`
+   - `Documentation/ABI/testing/sysfs-class-power` and `Documentation/hwmon/sysfs-interface.rst`
+   - `Documentation/devicetree/bindings/thermal/`
+   - `arch/arm64/boot/dts/qcom/` and `drivers/thermal/qcom/` in `kernel/mainline/msm8916-mainline`,
+     `kernel/mainline/msm89x7-mainline`, `kernel/mainline/msm8953-mainline`, `kernel/mainline/sm7150-mainline`
+   - `kernel/mainline/configs/` for the config fragments and defconfigs the devices are built with
+
 ## Design
 
 The HAL shall basically work on as many as possible devices without any additional configuration.

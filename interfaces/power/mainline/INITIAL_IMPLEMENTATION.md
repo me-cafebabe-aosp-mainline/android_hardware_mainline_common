@@ -63,6 +63,47 @@ Note that the kernel source root paths are actually symlinks.
 - Never report a mode, boost, hint or session feature as supported unless it will actually
   change system behavior on this device (same rule as `../../vibrator/mainline` for effects).
 
+## Where to start reading
+
+Paths are relative to AOSP source tree root. Read in this order before designing or
+writing code, and do not look outside these paths (see the guidelines).
+
+1. **This repository's rules**: `hardware/mainline/common/AGENTS.md`, then in
+   `hardware/mainline/common/docs/`: `INITIAL_IMPLEMENTATION_GUIDELINES.md`, `SCOPE.md`,
+   `NAMING_CONVENTIONS.md`, `CODE_STYLE.md`, `WORKFLOW.md`, `APEX_REBOOTLESS_UPDATE.md`,
+   `WIRING_A_HAL.md`, `COMMIT_CONVENTIONS.md`, `REVIEW.md`.
+2. **Layout and conventions of sibling HALs** (read for structure only, do not copy their logic):
+   `hardware/mainline/common/interfaces/vibrator/mainline` for a small single-module HAL
+   (`Android.bp`, `apex/`, `.rc`, vintf fragment, `AGENTS.md`, `README.md`), and
+   `hardware/mainline/common/interfaces/sensors/mainline` for property and
+   configuration file handling, `apex_linkerconfig.json` and `file_contexts`.
+   `hardware/mainline/common/libraries/` for where the shared library goes.
+3. **AIDL interface, example HAL and VTS**: `hardware/interfaces/power/aidl/android/hardware/power/*.aidl`
+   (start with `IPower.aidl`, `SupportInfo.aidl`, `Mode.aidl`, `Boost.aidl`, `IPowerHintSession.aidl`),
+   `hardware/interfaces/power/aidl/default/` (`Power.cpp`, `PowerHintSession.cpp`, `Android.bp`, `.rc`, `.xml`, APEX files),
+   and `hardware/interfaces/power/aidl/vts/VtsHalPowerTargetTest.cpp`.
+4. **How the framework consumes it** (to know what actually gets called and how often):
+   `frameworks/native/services/powermanager/` (`PowerHalController.cpp`, `PowerHalWrapper.cpp`,
+   `PowerHintSessionWrapper.cpp`), `frameworks/native/services/surfaceflinger/PowerAdvisor/`, and
+   `frameworks/base/services/core/java/com/android/server/power/hint/HintManagerService.java`.
+5. **Device tree wiring and SELinux**: `device/mainline/common/optional/` (`README.md`, `options.mk`,
+   `_template.mk`, `power-hal_default-aidl/`, `power-hal_perfmgr-lineage/` only for how `TARGET_POWER_HAL`
+   values exclude each other), and `device/mainline/common/sepolicy/vendor/`.
+6. **Platform**: `system/libbase/include/android-base`; `system/core/libprocessgroup/profiles/task_profiles.json`
+   for the cpu cgroups and uclamp profiles Android already uses (the HAL must not fight them);
+   `bionic/libc/kernel/uapi/linux/sched/types.h` for `struct sched_attr`.
+7. **Linux kernel**, in `kernel/mainline/android-mainline` unless stated:
+   - `Documentation/ABI/testing/sysfs-devices-system-cpu`, `sysfs-class-devfreq`, `sysfs-class-platform-profile`
+   - `Documentation/admin-guide/pm/cpufreq.rst`, `intel_pstate.rst`, `amd-pstate.rst`
+   - `Documentation/scheduler/sched-util-clamp.rst`, `sched-capacity.rst`, `sched-energy.rst`, `schedutil.rst`
+   - `kernel/sched/syscalls.c` (`sched_setattr`, `uclamp_validate`)
+   - `drivers/cpufreq/cpufreq.c`, `drivers/devfreq/devfreq.c`, `drivers/acpi/platform_profile.c`
+   - `Documentation/devicetree/bindings/cpu/` and `bindings/opp/` for `capacity-dmips-mhz`
+   - `arch/arm64/boot/dts/qcom/`, `drivers/cpufreq/qcom-cpufreq-*.c` and `drivers/devfreq/` in
+     `kernel/mainline/msm8916-mainline`, `kernel/mainline/msm89x7-mainline`, `kernel/mainline/msm8953-mainline`,
+     `kernel/mainline/sm7150-mainline`
+   - `kernel/mainline/configs/` for the config fragments and defconfigs the devices are built with
+
 ## Design
 
 The HAL shall basically work on as many as possible devices without any additional configuration,
