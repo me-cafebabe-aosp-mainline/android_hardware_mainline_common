@@ -46,6 +46,10 @@ Written for both AI agents and human contributors.
   interface you're implementing.
 - Commit as you go; see `docs/COMMIT_CONVENTIONS.md` for the subject, body,
   and trailer format.
+- Keep generated files out of commits. Running Python tests leaves
+  `__pycache__/` and `*.pyc` behind, and `git add -A` picks them up. Check
+  `git status` before committing, and ignore them in a `.gitignore` if the
+  component has Python code and its directory is not covered by one.
 - Before implementation, define the component's acceptance surface and
   verify the result is wired end to end; see `docs/SCOPE.md`. Examples in a
   bring-up request are representative cases, not the complete specification.
