@@ -38,7 +38,10 @@ Written for both AI agents and human contributors.
   line `@AGENTS.md`, so that Claude Code loads it too. Open the component's
   `AGENTS.md` with a reminder that agents must read it before touching the
   component's code, and keep the facts that cannot be derived from the code
-  (hard rules, quirk tables, reference paths) in it.
+  (hard rules, quirk tables, reference paths) in it. Write reference paths
+  relative to the AOSP source tree root. Do not put absolute paths, user
+  names, local device codenames or serials in it; see `docs/WORKFLOW.md`
+  for where build commands go.
 - Match the expectations of the Vendor Test Suite (VTS) module for the
   interface you're implementing.
 - Commit as you go; see `docs/COMMIT_CONVENTIONS.md` for the subject, body,
