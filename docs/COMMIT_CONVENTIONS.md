@@ -70,9 +70,6 @@ Assisted-by: <Agent>:<Model ID>
 - `Assisted-by: <Agent>:<Model ID>` identifies the specific tool and model,
   e.g. `Assisted-by: OpenCode:anthropic/claude-sonnet-5`.
 
-Older commits carry a `Change-Id` trailer, added by a `commit-msg` hook from
-the Gerrit days. It is no longer needed; do not add or edit one by hand.
-
 ## Applying the message
 
 Write the whole subject/body/trailers as a single piece of text and hand it

@@ -5,11 +5,11 @@ merged* into this repository's history — typically a human contributor's
 commit that met the bar for correctness and testing but skipped something
 else `docs/` requires. Written for both AI agents and human contributors.
 
-Every merged commit has already gone through `docs/REVIEW.md` (older ones
-also carry a `Change-Id`, a leftover of the Gerrit days). Once it's merged, do not
-rewrite it — no `commit --amend`, `rebase` past it, or `push --force`, even
-if you're the one who wrote it and even for a trivial typo in its own
-message. Close the gap with new, forward-only commit(s) on top instead.
+Every merged commit has already gone through `docs/REVIEW.md`. Once it's
+merged, do not rewrite it — no `commit --amend`, `rebase` past it, or
+`push --force`, even if you're the one who wrote it and even for a trivial
+typo in its own message. Close the gap with new, forward-only commit(s)
+on top instead.
 
 ## When this applies
 
