@@ -9,6 +9,12 @@ Applies to every component in this repository unless its own `AGENTS.md` or
   on your own. When one is needed, ask the human developer how to start it:
   the setup commands, the target, the environment variables and the build
   targets. Do not guess them, and keep the answer for later sessions.
+- Keep that answer in your own memory or notes, not in a committed file.
+  Build commands, `lunch`/`breakfast` targets, test device names and host
+  paths describe one person's machine, and the repository is shared. Leave
+  them out of `AGENTS.md`, `README.md`, code and commit messages. A
+  committed document may name a build target generically (`m <module>`)
+  or say which check must pass.
 - Report build results as they are, with the errors.
 
 ## Builds and tests on the build host
