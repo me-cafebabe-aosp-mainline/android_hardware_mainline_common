@@ -175,6 +175,10 @@ unsigned int gralloc_gm_get_gbm_flags_from_android_usage(int usage, int android_
     if (usage & GRALLOC_USAGE_PROTECTED)
         flags |= GBM_BO_USE_PROTECTED;
 
+    static const bool scanout_linear = property_get_bool(GRALLOC_SCANOUT_LINEAR_PROP, false);
+    if ((flags & GBM_BO_USE_SCANOUT) && scanout_linear)
+        flags |= GBM_BO_USE_LINEAR;
+
     if ((flags & GBM_BO_USE_SCANOUT) &&
         !(gbm_format == GBM_FORMAT_XRGB8888 || gbm_format == GBM_FORMAT_XBGR8888)) {
         log_w("We added GBM_BO_USE_SCANOUT but using unsupported format (%d).\n" \

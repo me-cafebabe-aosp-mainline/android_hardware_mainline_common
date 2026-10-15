@@ -17,3 +17,9 @@ Provided:
 ## Usage
 Add packages to `PRODUCT_PACKAGES`, and build the code with AOSP.
 
+## Properties
+
+| Property | Meaning |
+|----------|---------|
+| `vendor.gralloc.device` | The DRM node to allocate on, `/dev/dri/renderD128` by default |
+| `vendor.gralloc.scanout_linear` | `true` allocates the buffers for scanout as linear, for a display that is on another device than the allocation and cannot use the modifiers of the GPU |

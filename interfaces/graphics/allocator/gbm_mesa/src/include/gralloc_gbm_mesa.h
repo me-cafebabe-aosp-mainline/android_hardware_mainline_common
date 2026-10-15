@@ -15,6 +15,8 @@
 
 #define GRALLOC_DEFAULT_DEVICE_PROP "vendor.gralloc.device"
 #define GRALLOC_DEFAULT_DEVICE_PATH "/dev/dri/renderD128"
+// Allocate the buffers for scanout as linear, for a display on another device
+#define GRALLOC_SCANOUT_LINEAR_PROP "vendor.gralloc.scanout_linear"
 
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 #define ALIGN(A, B) (((A) + (B)-1) & ~((B)-1))
