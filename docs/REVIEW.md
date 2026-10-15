@@ -42,6 +42,11 @@ Consistency cuts across the whole change, not just source formatting:
   deviation is justified and, ideally, documented.
 - **Commit message vs. diff**: the message describes what the diff actually
   does — no more, no less.
+- **Host-specific content**: committed files (code, scripts, `AGENTS.md`,
+  `README.md`) and commit messages carry nothing that belongs to one
+  machine: absolute paths such as `/home/...`, `/android/...` or `/tmp/...`,
+  user names, build commands with a local `breakfast` or `lunch` target,
+  device serials. Search the diff for them (`docs/WORKFLOW.md` → Builds).
 - Per `vendor/mainline/docs/review.md`, inconsistent style compared to
   other same/similar code or commit messages in the same project is itself
   something to fix before merge (a minor issue in its cheatsheet).
