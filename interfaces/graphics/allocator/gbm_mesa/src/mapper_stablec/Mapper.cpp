@@ -411,6 +411,12 @@ int32_t GbmMesaMapperV5::getStandardMetadata(buffer_handle_t handle, F&& provide
     if constexpr (metadataType == StandardMetadataType::STRIDE) {
         // This stride should be the same value of AllocationResult of Allocator.
         // This stride will be used in validateBufferSize(), and unit is pixels.
+        // A BLOB has the stride of its size, whatever the rows of its backing buffer.
+        uint32_t blobWidth, blobHeight;
+        if (gralloc_gm_get_blob_backing_size(hnd->format, hnd->width, hnd->height, &blobWidth,
+                                             &blobHeight)) {
+            return provide(static_cast<int32_t>(hnd->width));
+        }
         return provide(static_cast<int32_t>(gralloc_gm_android_caculate_pixel_stride(hnd->format, hnd->stride)));
     }
 

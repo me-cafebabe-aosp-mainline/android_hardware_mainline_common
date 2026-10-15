@@ -54,6 +54,18 @@ int gralloc_gm_get_bpp_from_gbm_format(int gbm_format);
 int gralloc_gm_get_bytes_per_pixel_from_gbm_format(int gbm_format);
 int gralloc_gm_get_bytes_per_pixel_from_android_format(int android_format);
 uint32_t gralloc_gm_android_caculate_pixel_stride(uint32_t android_format, uint32_t stride);
+/*
+ * A BLOB buffer (a JPEG, for example) is as wide as it is large in bytes,
+ * which is beyond what a GPU can make as a linear buffer. It is backed by a
+ * buffer of this many bytes per row instead, as many rows as needed.
+ */
+#define GRALLOC_BLOB_ROW_BYTES 4096
+/*
+ * Set the size of the buffer to create or import for a BLOB of
+ * width x height bytes; returns false for any other buffer.
+ */
+bool gralloc_gm_get_blob_backing_size(uint32_t android_format, uint32_t width, uint32_t height,
+                                      uint32_t *backing_width, uint32_t *backing_height);
 inline static int gralloc_get_max_texture_2d_size() {
     // Only VirGL has the max size (witdh and height) limit of texture. 
     return UINT32_MAX;

@@ -318,6 +318,16 @@ int gralloc_gbm_device_create(int fd, struct gbm_device **dev) {
     return 0;
 }
 
+bool gralloc_gm_get_blob_backing_size(uint32_t android_format, uint32_t width, uint32_t height,
+                                      uint32_t *backing_width, uint32_t *backing_height) {
+    if (android_format != HAL_PIXEL_FORMAT_BLOB || width <= GRALLOC_BLOB_ROW_BYTES)
+        return false;
+
+    *backing_width = GRALLOC_BLOB_ROW_BYTES;
+    *backing_height = DIV_ROUND_UP((uint64_t)width * height, GRALLOC_BLOB_ROW_BYTES);
+    return true;
+}
+
 bool gralloc_is_format_supported() {
     // TODO: Finish the pixel format checking.
 
@@ -390,6 +400,15 @@ int32_t gralloc_allocate(const struct gralloc_buffer_desc *desc, int32_t *out_st
         height += ALIGN(handle->height, 2) / 2;
     }
 
+    /* A BLOB is created as a 2D buffer, see GRALLOC_BLOB_ROW_BYTES. */
+    uint32_t blob_width, blob_height;
+    bool is_blob = gralloc_gm_get_blob_backing_size(handle->format, handle->width, handle->height,
+                                                    &blob_width, &blob_height);
+    if (is_blob) {
+        width = blob_width;
+        height = blob_height;
+    }
+
     log_v("trying to create BO, size=%dx%d, fmt(gbm)=%d, usage=%x",
           handle->width, handle->height, format, flags);
     bo = gbm_priv_ops.gbm_bo_create(dev, width, height, format,
@@ -412,7 +431,8 @@ int32_t gralloc_allocate(const struct gralloc_buffer_desc *desc, int32_t *out_st
         gbm_bo_handle_map.emplace(buffer_handle, bo);
     }
 
-    *out_stride = handle->stride;
+    /* The stride of a BLOB is its size, whatever the rows of its backing buffer. */
+    *out_stride = is_blob ? handle->width : handle->stride;
     *out_handle = _handle;
 
     log_v("allocated buffer: prime_fd=%d, width=%d, height=%d, handle->stride=%d, format=%d",
@@ -682,6 +702,13 @@ int gralloc_gm_buffer_import(buffer_handle_t buffer_handle) {
     if (handle->format == HAL_PIXEL_FORMAT_YV12) {
         data.width = ALIGN(handle->width, 32) / 2;
         data.height = handle->height + ALIGN(handle->height, 2) / 2;
+    }
+
+    uint32_t blob_width, blob_height;
+    if (gralloc_gm_get_blob_backing_size(handle->format, handle->width, handle->height, &blob_width,
+                                         &blob_height)) {
+        data.width = blob_width;
+        data.height = blob_height;
     }
 
 #ifdef GBM_BO_IMPORT_FD_MODIFIER
