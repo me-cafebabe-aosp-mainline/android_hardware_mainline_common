@@ -66,6 +66,20 @@ uint32_t gralloc_gm_android_caculate_pixel_stride(uint32_t android_format, uint3
  */
 bool gralloc_gm_get_blob_backing_size(uint32_t android_format, uint32_t width, uint32_t height,
                                       uint32_t *backing_width, uint32_t *backing_height);
+/*
+ * A YCbCr_420_888 buffer is a planar I420 buffer, which a GPU cannot create:
+ * gbm_bo_create() fails with EINVAL for GBM_FORMAT_YUV420. It is backed by a
+ * single R8 buffer instead, with the Y plane first, and then the Cb and Cr
+ * planes, at half the stride and half the rows each:
+ *
+ *   Y   offset 0,                          stride S,   height rows
+ *   Cb  offset S * height,                 stride S/2, (height + 1) / 2 rows
+ *   Cr  offset S * height + S/2 * ((height + 1) / 2) after Cb, stride S/2
+ *
+ * S is the stride of the backing buffer. Returns false for any other format.
+ */
+bool gralloc_gm_get_yuv420_backing_size(uint32_t android_format, uint32_t width, uint32_t height,
+                                        uint32_t *backing_width, uint32_t *backing_height);
 inline static int gralloc_get_max_texture_2d_size() {
     // Only VirGL has the max size (witdh and height) limit of texture. 
     return UINT32_MAX;

@@ -364,6 +364,36 @@ int32_t GbmMesaMapperV5::getStandardMetadata(buffer_handle_t handle, F&& provide
     }
     if constexpr (metadataType == StandardMetadataType::PLANE_LAYOUTS) {
         std::vector<PlaneLayout> planeLayouts;
+        uint32_t yuvWidth, yuvHeight;
+        if (gralloc_gm_get_yuv420_backing_size(hnd->format, hnd->width, hnd->height, &yuvWidth,
+                                               &yuvHeight)) {
+            // Y, Cb and Cr in one buffer, see gralloc_gm_get_yuv420_backing_size().
+            const int64_t stride = hnd->stride;
+            const int64_t chromaStride = stride / 2;
+            const int64_t chromaRows = DIV_ROUND_UP(hnd->height, 2);
+            const int64_t chromaSize = chromaStride * chromaRows;
+            const int64_t offsets[] = {0, stride * hnd->height,
+                                       stride * hnd->height + chromaSize};
+            const int64_t sizes[] = {stride * hnd->height, chromaSize, chromaSize};
+            const ExtendableType types[] = {android::gralloc4::PlaneLayoutComponentType_Y,
+                                            android::gralloc4::PlaneLayoutComponentType_CB,
+                                            android::gralloc4::PlaneLayoutComponentType_CR};
+            for (size_t plane = 0; plane < 3; plane++) {
+                const int32_t subsampling = plane == 0 ? 1 : 2;
+                planeLayouts.push_back({
+                        .components = {{.type = types[plane], .offsetInBits = 0, .sizeInBits = 8}},
+                        .offsetInBytes = offsets[plane],
+                        .sampleIncrementInBits = 8,
+                        .strideInBytes = plane == 0 ? stride : chromaStride,
+                        .widthInSamples = static_cast<int64_t>(hnd->width) / subsampling,
+                        .heightInSamples = static_cast<int64_t>(hnd->height) / subsampling,
+                        .totalSizeInBytes = sizes[plane],
+                        .horizontalSubsampling = subsampling,
+                        .verticalSubsampling = subsampling,
+                });
+            }
+            return provide(planeLayouts);
+        }
         getPlaneLayouts(gralloc_gm_android_format_to_gbm_format(hnd->format), &planeLayouts);
 
         for (size_t plane = 0; plane < planeLayouts.size(); plane++) {

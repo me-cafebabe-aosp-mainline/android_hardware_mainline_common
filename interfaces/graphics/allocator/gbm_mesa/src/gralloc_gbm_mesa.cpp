@@ -329,6 +329,17 @@ bool gralloc_gm_get_blob_backing_size(uint32_t android_format, uint32_t width, u
     return true;
 }
 
+bool gralloc_gm_get_yuv420_backing_size(uint32_t android_format, uint32_t width, uint32_t height,
+                                        uint32_t *backing_width, uint32_t *backing_height) {
+    if (android_format != HAL_PIXEL_FORMAT_YCbCr_420_888)
+        return false;
+
+    /* The stride of the chroma planes is half of it, which is to be a multiple of 16. */
+    *backing_width = ALIGN(width, 32);
+    *backing_height = height + DIV_ROUND_UP(height, 2);
+    return true;
+}
+
 bool gralloc_is_format_supported() {
     // TODO: Finish the pixel format checking.
 
@@ -408,6 +419,15 @@ int32_t gralloc_allocate(const struct gralloc_buffer_desc *desc, int32_t *out_st
     if (is_blob) {
         width = blob_width;
         height = blob_height;
+    }
+
+    /* A YCbCr_420_888 is created as a single R8 buffer, see gralloc_gm_get_yuv420_backing_size(). */
+    uint32_t yuv_width, yuv_height;
+    if (gralloc_gm_get_yuv420_backing_size(handle->format, handle->width, handle->height,
+                                           &yuv_width, &yuv_height)) {
+        format = GBM_FORMAT_R8;
+        width = yuv_width;
+        height = yuv_height;
     }
 
     log_v("trying to create BO, size=%dx%d, fmt(gbm)=%d, usage=%x",
@@ -708,6 +728,12 @@ int gralloc_gm_buffer_import(buffer_handle_t buffer_handle) {
     uint32_t blob_width, blob_height;
     if (gralloc_gm_get_blob_backing_size(handle->format, handle->width, handle->height, &blob_width,
                                          &blob_height)) {
+        data.width = blob_width;
+        data.height = blob_height;
+    }
+    if (gralloc_gm_get_yuv420_backing_size(handle->format, handle->width, handle->height,
+                                           &blob_width, &blob_height)) {
+        data.format = GBM_FORMAT_R8;
         data.width = blob_width;
         data.height = blob_height;
     }
