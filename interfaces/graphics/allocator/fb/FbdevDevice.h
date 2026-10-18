@@ -58,6 +58,7 @@ class FbdevDevice {
     bool HasBrightness() const { return !backlight_path_.empty() && backlight_max_ != 0; }
     bool SetBrightness(float brightness);
     VsyncWaitResult WaitForVsync(int64_t* timestamp_ns);
+    static bool WaitAcquireFence(int fence);
     void InterruptVsyncWait();
     std::string Dump() const;
 
@@ -122,6 +123,9 @@ class FbdevDevice {
     bool has_vsync_waiter_ = false;
     bool vsync_interrupt_requested_ = false;
     std::mutex vsync_waiter_mutex_;
+    // The vblank fields use vblank_mutex_ so that sampling never waits for a
+    // present holding mutex_.
+    mutable std::mutex vblank_mutex_;
     bool get_vblank_supported_ = true;
     bool have_vblank_sample_ = false;
     bool have_vblank_count_ = false;

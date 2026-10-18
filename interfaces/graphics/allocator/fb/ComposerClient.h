@@ -131,8 +131,9 @@ class ComposerClient : public BnComposerClient {
         std::vector<fb::DamageRect> target_damage;
         ::android::base::unique_fd target_fence;
         ValidationState validation = ValidationState::kDirty;
-        bool vsync_enabled = false;
         bool refresh_debug_enabled = false;
+        // Guarded by vsync_mutex_ rather than mutex_.
+        bool vsync_enabled = false;
         bool have_vsync_sample = false;
         int64_t last_vsync_ns = 0;
     };
@@ -162,9 +163,12 @@ class ComposerClient : public BnComposerClient {
     std::mutex callback_mutex_;
     std::mutex refresh_callback_mutex_;
     std::mutex vsync_callback_mutex_;
+    // Lock order: vsync_callback_mutex_, mutex_, vsync_mutex_. Presents hold
+    // mutex_ while converting, so vsync workers only take vsync_mutex_.
+    std::mutex vsync_mutex_;
     std::condition_variable vsync_cv_;
     std::vector<std::unique_ptr<DisplayContext>> displays_;
-    std::shared_ptr<IComposerCallback> callback_;
+    std::shared_ptr<IComposerCallback> callback_;  // Guarded by vsync_mutex_.
     std::atomic<bool> stopping_{false};
 };
 

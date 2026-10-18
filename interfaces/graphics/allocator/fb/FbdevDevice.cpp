@@ -731,10 +731,7 @@ bool FbdevDevice::Present(const std::shared_ptr<ImportedBuffer>& buffer,
                           android::base::unique_fd* present_fence) {
     if (present_fence == nullptr || !Test(buffer)) return false;
     present_fence->reset();
-    if (acquire_fence >= 0 && sync_wait(acquire_fence, kAcquireFenceTimeoutMs) != 0) {
-        ALOGE("Acquire fence timed out for id=%" PRIu64, buffer ? buffer->view().allocation_id : 0);
-        return false;
-    }
+    if (acquire_fence >= 0 && !WaitAcquireFence(acquire_fence)) return false;
     std::lock_guard lock(mutex_);
     if (!powered_) return false;
     if (buffer == nullptr) {
@@ -781,6 +778,12 @@ bool FbdevDevice::Present(const std::shared_ptr<ImportedBuffer>& buffer,
     // valid sync-file.
     if (acquire_fence >= 0) present_fence->reset(dup(acquire_fence));
     return true;
+}
+
+bool FbdevDevice::WaitAcquireFence(int fence) {
+    if (sync_wait(fence, kAcquireFenceTimeoutMs) == 0) return true;
+    ALOGE("Acquire fence wait failed: %s", strerror(errno));
+    return false;
 }
 
 bool FbdevDevice::SetPower(bool on) {
@@ -900,13 +903,13 @@ FbdevDevice::VsyncWaitResult FbdevDevice::WaitForVsync(int64_t* timestamp_ns) {
 int64_t FbdevDevice::QueryVblank(int64_t fallback_timestamp_ns) {
 #ifdef FBIOGET_VBLANK
     {
-        std::lock_guard lock(mutex_);
+        std::lock_guard lock(vblank_mutex_);
         if (!get_vblank_supported_) return fallback_timestamp_ns;
     }
     fb_vblank vblank{};
     if (ioctl(fd_.get(), FBIOGET_VBLANK, &vblank) == 0) {
         const int64_t sample_ns = MonotonicNanos();
-        std::lock_guard lock(mutex_);
+        std::lock_guard lock(vblank_mutex_);
         const bool have_count = (vblank.flags & FB_VBLANK_HAVE_COUNT) != 0;
         if (have_count && have_vblank_count_) {
             const uint32_t elapsed = vblank.count - vblank_count_;
@@ -922,7 +925,7 @@ int64_t FbdevDevice::QueryVblank(int64_t fallback_timestamp_ns) {
     const int saved_errno = errno;
     if (saved_errno == ENOTTY || saved_errno == EINVAL || saved_errno == ENOSYS ||
         saved_errno == EOPNOTSUPP) {
-        std::lock_guard lock(mutex_);
+        std::lock_guard lock(vblank_mutex_);
         get_vblank_supported_ = false;
         ALOGI("FBIOGET_VBLANK unsupported on %s", path_.c_str());
     } else {
@@ -940,6 +943,7 @@ void FbdevDevice::InterruptVsyncWait() {
 
 std::string FbdevDevice::Dump() const {
     std::lock_guard lock(mutex_);
+    std::lock_guard vblank_lock(vblank_mutex_);
     std::ostringstream out;
     out << " fbdev=" << path_
         << " id=" << std::string(fixed_.id, strnlen(fixed_.id, sizeof(fixed_.id)))

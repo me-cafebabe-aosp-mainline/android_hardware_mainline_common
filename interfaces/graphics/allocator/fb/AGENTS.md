@@ -27,6 +27,10 @@ client-composition-only Composer3 V5 stack for legacy fbdev systems.
 - Wait acquire fences before CPU access. Never manufacture an eventfd fence.
 - Keep hardware vsync waits interruptible, cache permanent ioctl limitations,
   keep fallback vsync stoppable, and invoke Binder callbacks without `mutex_`.
+  Keep vsync state on `vsync_mutex_` and vblank statistics on
+  `vblank_mutex_`, so that vsync never waits for a present. Do not hold
+  `mutex_` while sleeping until the expected present time or waiting for an
+  acquire fence.
 - Report a known vsync sample only from a real `FBIO_WAITFORVSYNC` event. Never
   report the synthetic fallback cadence, and discard the recorded sample when
   the display powers off.
