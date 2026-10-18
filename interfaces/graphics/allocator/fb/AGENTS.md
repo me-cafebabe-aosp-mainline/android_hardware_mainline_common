@@ -43,6 +43,9 @@ client-composition-only Composer3 V5 stack for legacy fbdev systems.
   change its palette and use the precomputed bounded nearest-color lookup.
   Preserve the fbdev `pwrite` damage-notification path because DRM sysfb drivers
   expose deferred shadow mappings rather than direct firmware scanout memory.
+  Other drivers flush with one `msync` per present, which runs the deferred-I/O
+  worker at once, and use `pwrite` only when the kernel lacks fbdev `fsync`.
+  Write from the owned frame, never from the scanout mapping.
 - Monochrome output requires explicit MONO01/MONO10 polarity and packed-bit
   ordering. Grayscale is limited to validated packed whole-pixel fields and
   uses luminance conversion; `swap_rb` remains before every output conversion.

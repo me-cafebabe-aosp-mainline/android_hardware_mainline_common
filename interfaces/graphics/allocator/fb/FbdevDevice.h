@@ -79,7 +79,14 @@ class FbdevDevice {
                               std::vector<uint16_t>* alpha) const;
     bool ConfigureStaticPalette(int fd, std::vector<uint8_t>* lookup) const;
     void RestoreColorMap();
-    bool Flush(uint64_t offset, uint64_t size);
+    struct ByteRange {
+        uint64_t offset;
+        uint64_t size;
+    };
+    std::vector<ByteRange> PageRanges(const std::vector<DamageRect>& rects) const;
+    bool WriteRange(uint64_t offset, const uint8_t* source, uint64_t size);
+    bool SyncMapping(uint64_t begin, uint64_t end);
+    bool Flush(uint64_t base, const uint8_t* source, const std::vector<ByteRange>& ranges);
     bool WritePage(uint32_t page, const std::vector<DamageRect>& rects);
     bool ClearFramebuffer(bool replace_frame);
     bool RestoreCurrentFrame();
@@ -106,6 +113,7 @@ class FbdevDevice {
     uint8_t clear_pixel_ = 0;
     bool pan_supported_ = false;
     bool requires_write_flush_ = false;
+    bool msync_supported_ = true;
     bool blank_supported_ = false;
     bool powered_ = false;
     bool wait_for_vsync_supported_ = true;

@@ -164,9 +164,13 @@ by the framework orientation, while the fbdev driver performs its declared
 scanout rotation. The HAL therefore does not rotate pixels a second time.
 
 DRM fbdev emulation, including `efidrm`, `ofdrm`, `simpledrm`, and `vesadrm`,
-maps a shadow framebuffer rather than the firmware aperture. After conversion,
-the HAL uses `pwrite` on the fbdev node to trigger immediate damage propagation,
-with `msync` as a compatibility fallback. It treats `smem_len == 0` as unknown,
+maps a shadow framebuffer rather than the firmware aperture. For these
+drivers the HAL writes the converted rows with `pwrite` on the fbdev node, which
+triggers immediate damage propagation. Other drivers receive the rows through
+the mapping and one `msync` per present: deferred-I/O drivers flush pending
+damage from it, and direct scanout memory needs none. Kernels without fbdev
+`fsync` fall back to `pwrite`. Damage spanning full rows is written as one
+range. The HAL treats `smem_len == 0` as unknown,
 uses the reported line stride, does not depend on physical `smem_start`, and
 caches permanent pan/blank limitations. Use the Composer Binder dump for
 geometry, channel layout, page, saved-frame, power, target, layer, and

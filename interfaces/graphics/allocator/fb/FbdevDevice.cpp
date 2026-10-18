@@ -593,8 +593,7 @@ bool FbdevDevice::ConfigureStaticPalette(int fd, std::vector<uint8_t>* lookup) c
     return true;
 }
 
-bool FbdevDevice::Flush(uint64_t offset, uint64_t size) {
-    const auto* source = static_cast<const uint8_t*>(framebuffer_) + offset;
+bool FbdevDevice::WriteRange(uint64_t offset, const uint8_t* source, uint64_t size) {
     uint64_t written = 0;
     while (written < size) {
         const size_t count = static_cast<size_t>(std::min<uint64_t>(size - written, SSIZE_MAX));
@@ -604,50 +603,82 @@ bool FbdevDevice::Flush(uint64_t offset, uint64_t size) {
         written += result;
     }
     if (written == size) return true;
-    if (requires_write_flush_) {
-        ALOGE("Incomplete fbdev damage write: %" PRIu64 " of %" PRIu64 " bytes", written, size);
-        return false;
-    }
+    ALOGE("Incomplete fbdev damage write: %" PRIu64 " of %" PRIu64 " bytes", written, size);
+    return false;
+}
+
+bool FbdevDevice::SyncMapping(uint64_t begin, uint64_t end) {
     const long page_size = sysconf(_SC_PAGESIZE);
-    if (page_size > 0) {
-        const uint64_t aligned_offset = offset - offset % static_cast<uint64_t>(page_size);
-        uint64_t end;
-        if (!__builtin_add_overflow(offset, size, &end)) {
-            const uint64_t sync_size = end - aligned_offset;
-            if (sync_size <= framebuffer_size_ - aligned_offset &&
-                msync(static_cast<uint8_t*>(framebuffer_) + aligned_offset, sync_size, MS_SYNC) ==
-                        0) {
-                return true;
-            }
+    if (page_size <= 0 || begin > end || end > framebuffer_size_) return false;
+    const uint64_t aligned_begin = begin - begin % static_cast<uint64_t>(page_size);
+    return msync(static_cast<uint8_t*>(framebuffer_) + aligned_begin, end - aligned_begin,
+                 MS_SYNC) == 0;
+}
+
+bool FbdevDevice::Flush(uint64_t base, const uint8_t* source,
+                        const std::vector<ByteRange>& ranges) {
+    if (ranges.empty()) return true;
+    // DRM sysfb pwrite copies into the shadow buffer and reports the damage at
+    // once; its mapping alone is only scanned by a delayed worker.
+    if (!requires_write_flush_ && msync_supported_) {
+        uint64_t begin = UINT64_MAX;
+        uint64_t end = 0;
+        for (const ByteRange& range : ranges) {
+            begin = std::min(begin, base + range.offset);
+            end = std::max(end, base + range.offset + range.size);
+        }
+        // Deferred-I/O drivers flush pending damage from fsync, and directly
+        // mapped scanout memory needs no flush, so one msync covers both.
+        if (SyncMapping(begin, end)) return true;
+        if (errno == EINVAL || errno == ENOSYS || errno == EOPNOTSUPP) {
+            ALOGI("msync unsupported on %s; flushing with writes", path_.c_str());
+            msync_supported_ = false;
+        } else {
+            ALOGW("Unable to sync fbdev mapping: %s", strerror(errno));
         }
     }
-    ALOGW("Unable to flush fbdev mapping: %s", strerror(errno));
-    return false;
+    for (const ByteRange& range : ranges) {
+        if (!WriteRange(base + range.offset, source + range.offset, range.size)) return false;
+    }
+    return true;
+}
+
+std::vector<FbdevDevice::ByteRange> FbdevDevice::PageRanges(
+        const std::vector<DamageRect>& rects) const {
+    std::vector<ByteRange> ranges;
+    const uint64_t stride = fixed_.line_length;
+    for (const DamageRect& rect : rects) {
+        if (rect.left >= rect.right || rect.top >= rect.bottom) continue;
+        const uint64_t first_byte = static_cast<uint64_t>(rect.left) * info_.bits_per_pixel / 8;
+        const uint64_t last_byte =
+                (static_cast<uint64_t>(rect.right) * info_.bits_per_pixel + 7) / 8;
+        if (rect.left == 0 && rect.right == info_.xres) {
+            // Full-width rows are contiguous apart from invisible line padding.
+            ranges.push_back(
+                    {rect.top * stride, (rect.bottom - rect.top - 1) * stride + last_byte});
+            continue;
+        }
+        for (uint32_t y = rect.top; y < rect.bottom; ++y) {
+            ranges.push_back({y * stride + first_byte, last_byte - first_byte});
+        }
+    }
+    return ranges;
 }
 
 bool FbdevDevice::WritePage(uint32_t page, const std::vector<DamageRect>& rects) {
     const uint64_t offset = static_cast<uint64_t>(page) * page_size_;
     page_synced_[page] = false;
     if (offset > framebuffer_size_ || page_size_ > framebuffer_size_ - offset) return false;
-    auto* destination = static_cast<uint8_t*>(framebuffer_) + offset;
-    for (const DamageRect& rect : rects) {
-        const uint64_t first_byte = static_cast<uint64_t>(rect.left) * info_.bits_per_pixel / 8;
-        const uint64_t last_byte =
-                (static_cast<uint64_t>(rect.right) * info_.bits_per_pixel + 7) / 8;
-        for (uint32_t y = rect.top; y < rect.bottom; ++y) {
-            const size_t row = static_cast<size_t>(y) * fixed_.line_length + first_byte;
-            memcpy(destination + row, frame_.data() + row, last_byte - first_byte);
+    const std::vector<ByteRange> ranges = PageRanges(rects);
+    if (!requires_write_flush_) {
+        auto* destination = static_cast<uint8_t*>(framebuffer_) + offset;
+        for (const ByteRange& range : ranges) {
+            memcpy(destination + range.offset, frame_.data() + range.offset, range.size);
         }
     }
-    for (const DamageRect& rect : rects) {
-        const uint64_t first_byte = static_cast<uint64_t>(rect.left) * info_.bits_per_pixel / 8;
-        const uint64_t last_byte =
-                (static_cast<uint64_t>(rect.right) * info_.bits_per_pixel + 7) / 8;
-        for (uint32_t y = rect.top; y < rect.bottom; ++y) {
-            const uint64_t row_offset = offset + static_cast<uint64_t>(y) * fixed_.line_length;
-            if (!Flush(row_offset + first_byte, last_byte - first_byte)) return false;
-        }
-    }
+    // The writes take their bytes from the cached owned frame, not from the
+    // scanout mapping.
+    if (!Flush(offset, frame_.data(), ranges)) return false;
     page_synced_[page] = true;
     return true;
 }
@@ -656,7 +687,9 @@ bool FbdevDevice::ClearFramebuffer(bool replace_frame) {
     if (replace_frame) std::fill(frame_.begin(), frame_.end(), clear_pixel_);
     memset(framebuffer_, clear_pixel_, framebuffer_size_);
     page_synced_.assign(page_count_, false);
-    if (!Flush(0, framebuffer_size_)) return false;
+    if (!Flush(0, static_cast<const uint8_t*>(framebuffer_), {{0, framebuffer_size_}})) {
+        return false;
+    }
     page_synced_.assign(page_count_, replace_frame);
     return true;
 }
