@@ -60,6 +60,8 @@ client-composition-only Composer3 V5 stack for legacy fbdev systems.
   frame before panning to a backing page whose contents are not synchronized.
 - Preserve the last presented frame as owned converted scanout bytes, never as
   a mutable client-buffer reference, and redraw/flush it after unblank.
+  Convert into that owned frame and copy rows to scanout memory, which is
+  often uncached; never read the framebuffer back on the present path.
 - Virtual-height expansion may change only `yres_virtual`; re-query fixed and
   variable geometry, validate complete mapping bounds, and restore the original
   mode when a two-page request cannot be used safely.

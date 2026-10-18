@@ -395,6 +395,14 @@ bool FbdevDevice::InitPath(const std::string& path) {
     framebuffer_size_ = map_size;
     page_count_ = std::max(1U, info_.yres_virtual / info_.yres);
     current_page_ = std::min(page_count_ - 1, info_.yoffset / info_.yres);
+    page_size_ = static_cast<size_t>(info_.yres) * fixed_.line_length;
+    // The visible page is read once so that partial damage before the first
+    // complete frame keeps the surrounding scanout contents.
+    const auto* visible = static_cast<const uint8_t*>(framebuffer_) + current_page_ * page_size_;
+    frame_.assign(visible, visible + page_size_);
+    frame_presented_ = false;
+    page_synced_.assign(page_count_, false);
+    page_synced_[current_page_] = true;
     swap_red_blue_ = conversion.swap_red_blue;
     blank_supported_ = blank_supported;
     vsync_signal_installed_ = vsync_signal_installed;
@@ -617,28 +625,45 @@ bool FbdevDevice::Flush(uint64_t offset, uint64_t size) {
     return false;
 }
 
-bool FbdevDevice::SaveCurrentFrame() {
-    const uint64_t page_size = static_cast<uint64_t>(info_.yres) * fixed_.line_length;
-    const uint64_t offset = static_cast<uint64_t>(current_page_) * page_size;
-    if (page_size > SIZE_MAX || offset > framebuffer_size_ ||
-        page_size > framebuffer_size_ - offset) {
-        return false;
+bool FbdevDevice::WritePage(uint32_t page, const std::vector<DamageRect>& rects) {
+    const uint64_t offset = static_cast<uint64_t>(page) * page_size_;
+    page_synced_[page] = false;
+    if (offset > framebuffer_size_ || page_size_ > framebuffer_size_ - offset) return false;
+    auto* destination = static_cast<uint8_t*>(framebuffer_) + offset;
+    for (const DamageRect& rect : rects) {
+        const uint64_t first_byte = static_cast<uint64_t>(rect.left) * info_.bits_per_pixel / 8;
+        const uint64_t last_byte =
+                (static_cast<uint64_t>(rect.right) * info_.bits_per_pixel + 7) / 8;
+        for (uint32_t y = rect.top; y < rect.bottom; ++y) {
+            const size_t row = static_cast<size_t>(y) * fixed_.line_length + first_byte;
+            memcpy(destination + row, frame_.data() + row, last_byte - first_byte);
+        }
     }
-    const auto* frame = static_cast<const uint8_t*>(framebuffer_) + offset;
-    last_frame_.assign(frame, frame + static_cast<size_t>(page_size));
+    for (const DamageRect& rect : rects) {
+        const uint64_t first_byte = static_cast<uint64_t>(rect.left) * info_.bits_per_pixel / 8;
+        const uint64_t last_byte =
+                (static_cast<uint64_t>(rect.right) * info_.bits_per_pixel + 7) / 8;
+        for (uint32_t y = rect.top; y < rect.bottom; ++y) {
+            const uint64_t row_offset = offset + static_cast<uint64_t>(y) * fixed_.line_length;
+            if (!Flush(row_offset + first_byte, last_byte - first_byte)) return false;
+        }
+    }
+    page_synced_[page] = true;
+    return true;
+}
+
+bool FbdevDevice::ClearFramebuffer(bool replace_frame) {
+    if (replace_frame) std::fill(frame_.begin(), frame_.end(), clear_pixel_);
+    memset(framebuffer_, clear_pixel_, framebuffer_size_);
+    page_synced_.assign(page_count_, false);
+    if (!Flush(0, framebuffer_size_)) return false;
+    page_synced_.assign(page_count_, replace_frame);
     return true;
 }
 
 bool FbdevDevice::RestoreCurrentFrame() {
-    if (last_frame_.empty()) return true;
-    const uint64_t page_size = static_cast<uint64_t>(info_.yres) * fixed_.line_length;
-    const uint64_t offset = static_cast<uint64_t>(current_page_) * page_size;
-    if (page_size != last_frame_.size() || offset > framebuffer_size_ ||
-        page_size > framebuffer_size_ - offset) {
-        return false;
-    }
-    memcpy(static_cast<uint8_t*>(framebuffer_) + offset, last_frame_.data(), last_frame_.size());
-    return Flush(offset, page_size);
+    if (!frame_presented_) return true;
+    return WritePage(current_page_, {{0, 0, info_.xres, info_.yres}});
 }
 
 bool FbdevDevice::Test(const std::shared_ptr<ImportedBuffer>& buffer) const {
@@ -680,31 +705,28 @@ bool FbdevDevice::Present(const std::shared_ptr<ImportedBuffer>& buffer,
     std::lock_guard lock(mutex_);
     if (!powered_) return false;
     if (buffer == nullptr) {
-        memset(framebuffer_, clear_pixel_, framebuffer_size_);
-        if (!Flush(0, framebuffer_size_)) return false;
-        if (!SaveCurrentFrame()) return false;
+        frame_presented_ = true;
+        if (!ClearFramebuffer(true)) return false;
         if (acquire_fence >= 0) present_fence->reset(dup(acquire_fence));
         return true;
     }
     uint32_t target_page = current_page_;
     if (pan_supported_ && !damage.empty()) target_page = (current_page_ + 1) % page_count_;
-    const uint64_t offset = static_cast<uint64_t>(target_page) * info_.yres * fixed_.line_length;
-    const uint64_t page_size = static_cast<uint64_t>(info_.yres) * fixed_.line_length;
-    if (offset + page_size > framebuffer_size_) return false;
     const std::vector<DamageRect> full_frame = {{0, 0, info_.xres, info_.yres}};
+    // Another page holds an older frame, so panning converts the complete target.
     const std::vector<DamageRect>& copy_damage = target_page == current_page_ ? damage : full_frame;
-    if (!Copy(*buffer, static_cast<uint8_t*>(framebuffer_) + offset, copy_damage)) {
+    if (!Copy(*buffer, frame_.data(), copy_damage)) {
         ALOGE("Client target conversion failed");
         return false;
     }
-    for (const DamageRect& rect : copy_damage) {
-        const uint64_t first_byte = static_cast<uint64_t>(rect.left) * info_.bits_per_pixel / 8;
-        const uint64_t last_byte =
-                (static_cast<uint64_t>(rect.right) * info_.bits_per_pixel + 7) / 8;
-        for (uint32_t y = rect.top; y < rect.bottom; ++y) {
-            const uint64_t row_offset = offset + static_cast<uint64_t>(y) * fixed_.line_length;
-            if (!Flush(row_offset + first_byte, last_byte - first_byte)) return false;
+    frame_presented_ = true;
+    if (!copy_damage.empty()) {
+        for (uint32_t page = 0; page < page_count_; ++page) {
+            if (page != target_page) page_synced_[page] = false;
         }
+    }
+    if (!WritePage(target_page, page_synced_[target_page] ? copy_damage : full_frame)) {
+        return false;
     }
     if (pan_supported_) {
         fb_var_screeninfo pan = info_;
@@ -716,19 +738,12 @@ bool FbdevDevice::Present(const std::shared_ptr<ImportedBuffer>& buffer,
             if (errno == ENOTTY || errno == EINVAL || errno == ENOSYS || errno == EOPNOTSUPP) {
                 pan_supported_ = false;
             }
-            const uint64_t visible_offset =
-                    static_cast<uint64_t>(current_page_) * info_.yres * fixed_.line_length;
-            if (visible_offset + page_size > framebuffer_size_ ||
-                !Copy(*buffer, static_cast<uint8_t*>(framebuffer_) + visible_offset, full_frame)) {
-                return false;
-            }
-            if (!Flush(visible_offset, page_size)) return false;
+            if (!WritePage(current_page_, full_frame)) return false;
         } else {
             info_.yoffset = pan.yoffset;
             current_page_ = target_page;
         }
     }
-    if (!SaveCurrentFrame()) return false;
     // A successfully waited acquire sync-file is already signaled and remains a
     // valid sync-file.
     if (acquire_fence >= 0) present_fence->reset(dup(acquire_fence));
@@ -751,10 +766,9 @@ bool FbdevDevice::SetPower(bool on) {
         ALOGE("FBIOBLANK(%d) failed: %s", on, strerror(errno));
         return false;
     }
-    if (!blank_supported_ && !on) {
-        memset(framebuffer_, clear_pixel_, framebuffer_size_);
-        if (!Flush(0, framebuffer_size_)) return false;
-    }
+    // A presented frame stays in frame_ for the redraw after unblank; until then
+    // the cleared page is the scanout content to keep.
+    if (!blank_supported_ && !on && !ClearFramebuffer(!frame_presented_)) return false;
     if (on && !RestoreCurrentFrame()) {
         ALOGE("Unable to redraw framebuffer after unblank on %s", path_.c_str());
         return false;
@@ -905,7 +919,7 @@ std::string FbdevDevice::Dump() const {
         << " directcolor=" << directcolor_ << " mono=" << monochrome_ << " grayscale=" << grayscale_
         << " fourcc=0x" << std::hex << fourcc_ << std::dec << " period=" << period_ns_
         << " dpi=" << xdpi_ << 'x' << ydpi_ << " powered=" << powered_
-        << " rotation=" << info_.rotate << " savedFrame=" << !last_frame_.empty()
+        << " rotation=" << info_.rotate << " savedFrame=" << frame_presented_
         << " swap_rb=" << swap_red_blue_ << " vblankSample=" << have_vblank_sample_
         << " vblankFlags=0x" << std::hex << vblank_flags_ << std::dec << " vblankCount=";
     if (have_vblank_count_) {

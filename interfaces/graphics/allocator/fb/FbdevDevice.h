@@ -80,7 +80,8 @@ class FbdevDevice {
     bool ConfigureStaticPalette(int fd, std::vector<uint8_t>* lookup) const;
     void RestoreColorMap();
     bool Flush(uint64_t offset, uint64_t size);
-    bool SaveCurrentFrame();
+    bool WritePage(uint32_t page, const std::vector<DamageRect>& rects);
+    bool ClearFramebuffer(bool replace_frame);
     bool RestoreCurrentFrame();
     int64_t QueryVblank(int64_t fallback_timestamp_ns);
 
@@ -125,7 +126,12 @@ class FbdevDevice {
     std::vector<uint16_t> saved_cmap_blue_;
     std::vector<uint16_t> saved_cmap_alpha_;
     PixelConverter converter_;
-    std::vector<uint8_t> last_frame_;
+    // Converted bytes of the latest frame for one page, in scanout layout.
+    std::vector<uint8_t> frame_;
+    bool frame_presented_ = false;
+    size_t page_size_ = 0;
+    // Pages whose contents equal frame_.
+    std::vector<bool> page_synced_;
     std::string backlight_path_;
     uint32_t backlight_max_ = 0;
     bool backlight_power_down_ = false;

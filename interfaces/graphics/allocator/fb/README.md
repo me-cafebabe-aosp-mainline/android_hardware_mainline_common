@@ -108,8 +108,9 @@ the present fence when available; otherwise no fence is returned under
 Switching backing pages still copies the full frame because page contents are
 not assumed to be synchronized.
 
-After each successful present, the device owns a byte copy of the converted
-visible scanout page rather than retaining a mutable client buffer. A successful
+Composer converts client targets into a device-owned copy of the visible
+scanout page and copies the changed rows to framebuffer memory, rather than
+retaining a mutable client buffer or reading scanout memory back. A successful
 hardware unblank, or re-enabling an emulated blank, redraws and flushes that
 last frame. Other backing pages remain unsynchronized and continue to receive a
 full copy before panning.
