@@ -183,7 +183,7 @@ The programs are built as multiple variants via `Android.bp`:
 
 | Target | Install Path | Description |
 |---|---|---|
-| `libtablet2multitouch` | `/vendor/lib(64)/libtablet2multitouch.so` | Shared library |
+| `libtablet2multitouch` | `/vendor/lib(64)/libtablet2multitouch.so` | Shared library; also has a system variant for system side users |
 | `tablet2multitouch` | `/vendor/bin/tablet2multitouch` | Normal boot, vendor partition |
 | `tablet2multitouch_recovery` | `/system/bin/tablet2multitouch` | Recovery mode, system partition |
 
