@@ -2,5 +2,5 @@
     "name": "com.android.hardware.graphics.composer",
     "supportsRebootlessUpdate": true,
     "version": 1,
-    "vendorBootstrap": true
+    "bootstrap": true
 }
