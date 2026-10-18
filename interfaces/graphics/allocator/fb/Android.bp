@@ -27,6 +27,7 @@ filegroup {
         "ComposerClient.cpp",
         "ComposerService.cpp",
         "FbdevDevice.cpp",
+        "PixelConverter.cpp",
     ],
 }
 

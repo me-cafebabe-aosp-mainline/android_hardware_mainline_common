@@ -26,6 +26,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <sstream>
 
 namespace fb {
@@ -42,25 +43,25 @@ int64_t MonotonicNanos() {
     return static_cast<int64_t>(now.tv_sec) * 1000000000LL + now.tv_nsec;
 }
 
-bool IsScanoutFormat(PixelFormat format) {
+std::optional<SourceFormat> ScanoutSourceFormat(PixelFormat format) {
     switch (format) {
         case PixelFormat::RGBA_8888:
+            return SourceFormat::kRgba8888;
         case PixelFormat::RGBX_8888:
+            return SourceFormat::kRgbx8888;
         case PixelFormat::BGRA_8888:
+            return SourceFormat::kBgra8888;
         case PixelFormat::RGB_888:
+            return SourceFormat::kRgb888;
         case PixelFormat::RGB_565:
-            return true;
+            return SourceFormat::kRgb565;
         default:
-            return false;
+            return std::nullopt;
     }
 }
 
-uint8_t Expand5(uint32_t value) {
-    return static_cast<uint8_t>((value << 3) | (value >> 2));
-}
-
-uint8_t Expand6(uint32_t value) {
-    return static_cast<uint8_t>((value << 2) | (value >> 4));
+bool IsScanoutFormat(PixelFormat format) {
+    return ScanoutSourceFormat(format).has_value();
 }
 
 uint32_t FieldMask(const fb_bitfield& field) {
@@ -297,6 +298,43 @@ bool FbdevDevice::InitPath(const std::string& path) {
         return false;
     }
     const uint8_t mode_clear_pixel = fixed.visual == FB_VISUAL_MONO01 ? UINT8_MAX : 0;
+    std::vector<uint8_t> static_lookup;
+    if (static_pseudocolor && !ConfigureStaticPalette(candidate.get(), &static_lookup)) {
+        ALOGE("Unable to read static palette on %s", path.c_str());
+        munmap(map, map_size);
+        return false;
+    }
+    const uint8_t clear_pixel = static_lookup.empty() ? mode_clear_pixel : static_lookup[0];
+    PixelConverter::Config conversion;
+    if (fourcc) {
+        conversion.output = PixelConverter::Output::kFourcc;
+    } else if (pseudocolor) {
+        conversion.output = PixelConverter::Output::kRgb332;
+    } else if (static_pseudocolor) {
+        conversion.output = PixelConverter::Output::kStaticPalette;
+    } else if (monochrome) {
+        conversion.output = PixelConverter::Output::kMonochrome;
+    } else if (grayscale) {
+        conversion.output = PixelConverter::Output::kGrayscale;
+    } else {
+        conversion.output = PixelConverter::Output::kTrueColor;
+    }
+    conversion.bits_per_pixel = info.bits_per_pixel;
+    conversion.red = info.red;
+    conversion.green = info.green;
+    conversion.blue = info.blue;
+    conversion.transp = info.transp;
+    conversion.fourcc = fourcc ? info.grayscale : 0;
+    conversion.mono10 = fixed.visual == FB_VISUAL_MONO10;
+    conversion.reverse_pixels_in_byte = (info.nonstd & FB_NONSTD_REV_PIX_IN_B) != 0;
+    conversion.swap_red_blue = android::base::GetBoolProperty("vendor.hwc.fbdev.swap_rb", false);
+    conversion.static_palette = std::move(static_lookup);
+    PixelConverter converter;
+    if (!converter.Configure(conversion)) {
+        ALOGE("Unsupported fbdev pixel conversion on %s", path.c_str());
+        munmap(map, map_size);
+        return false;
+    }
     bool blank_supported = ioctl(candidate.get(), FBIOBLANK, FB_BLANK_POWERDOWN) == 0;
     if (!blank_supported) {
         if (errno != ENOTTY && errno != EINVAL && errno != ENOSYS && errno != EOPNOTSUPP) {
@@ -325,13 +363,6 @@ bool FbdevDevice::InitPath(const std::string& path) {
         munmap(map, map_size);
         return false;
     }
-    std::vector<uint8_t> static_lookup;
-    if (static_pseudocolor && !ConfigureStaticPalette(candidate.get(), &static_lookup)) {
-        ALOGE("Unable to read static palette on %s", path.c_str());
-        munmap(map, map_size);
-        return false;
-    }
-    const uint8_t clear_pixel = static_lookup.empty() ? mode_clear_pixel : static_lookup[0];
     if (!blank_supported && clear_pixel != mode_clear_pixel) {
         memset(map, clear_pixel, map_size);
         if (msync(map, map_size, MS_SYNC) != 0) {
@@ -364,7 +395,7 @@ bool FbdevDevice::InitPath(const std::string& path) {
     framebuffer_size_ = map_size;
     page_count_ = std::max(1U, info_.yres_virtual / info_.yres);
     current_page_ = std::min(page_count_ - 1, info_.yoffset / info_.yres);
-    swap_red_blue_ = android::base::GetBoolProperty("vendor.hwc.fbdev.swap_rb", false);
+    swap_red_blue_ = conversion.swap_red_blue;
     blank_supported_ = blank_supported;
     vsync_signal_installed_ = vsync_signal_installed;
     pseudocolor_ = pseudocolor;
@@ -372,14 +403,13 @@ bool FbdevDevice::InitPath(const std::string& path) {
     static_pseudocolor_ = static_pseudocolor;
     monochrome_ = monochrome;
     grayscale_ = grayscale;
-    reverse_pixels_in_byte_ = (info.nonstd & FB_NONSTD_REV_PIX_IN_B) != 0;
     fourcc_ = fourcc ? info.grayscale : 0;
     clear_pixel_ = clear_pixel;
     saved_cmap_red_ = std::move(saved_red);
     saved_cmap_green_ = std::move(saved_green);
     saved_cmap_blue_ = std::move(saved_blue);
     saved_cmap_alpha_ = std::move(saved_alpha);
-    static_palette_lookup_ = std::move(static_lookup);
+    converter_ = std::move(converter);
     const std::string id(fixed_.id, strnlen(fixed_.id, sizeof(fixed_.id)));
     requires_write_flush_ = id == "efidrmdrmfb" || id == "ofdrmdrmfb" || id == "simpledrmdrmfb" ||
                             id == "vesadrmdrmfb";
@@ -617,128 +647,13 @@ bool FbdevDevice::Test(const std::shared_ptr<ImportedBuffer>& buffer) const {
                                  IsScanoutFormat(buffer->view().layout.format));
 }
 
-uint32_t FbdevDevice::Pack(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha) const {
-    switch (fourcc_) {
-        case V4L2_PIX_FMT_RGB565:
-            return ((static_cast<uint32_t>(red) * 31 + 127) / 255 << 11) |
-                   ((static_cast<uint32_t>(green) * 63 + 127) / 255 << 5) |
-                   ((static_cast<uint32_t>(blue) * 31 + 127) / 255);
-        case V4L2_PIX_FMT_RGB24:
-            return red | (static_cast<uint32_t>(green) << 8) | (static_cast<uint32_t>(blue) << 16);
-        case V4L2_PIX_FMT_XRGB32:
-            return UINT8_MAX | (static_cast<uint32_t>(red) << 8) |
-                   (static_cast<uint32_t>(green) << 16) | (static_cast<uint32_t>(blue) << 24);
-        case V4L2_PIX_FMT_ARGB32:
-            return alpha | (static_cast<uint32_t>(red) << 8) |
-                   (static_cast<uint32_t>(green) << 16) | (static_cast<uint32_t>(blue) << 24);
-        case V4L2_PIX_FMT_XBGR32:
-            return blue | (static_cast<uint32_t>(green) << 8) | (static_cast<uint32_t>(red) << 16) |
-                   (UINT32_C(0xff) << 24);
-        case V4L2_PIX_FMT_ABGR32:
-            return blue | (static_cast<uint32_t>(green) << 8) | (static_cast<uint32_t>(red) << 16) |
-                   (static_cast<uint32_t>(alpha) << 24);
-        case V4L2_PIX_FMT_ARGB2101010:
-            return ((static_cast<uint32_t>(alpha) * 3 + 127) / 255 << 30) |
-                   ((static_cast<uint32_t>(red) * 1023 + 127) / 255 << 20) |
-                   ((static_cast<uint32_t>(green) * 1023 + 127) / 255 << 10) |
-                   ((static_cast<uint32_t>(blue) * 1023 + 127) / 255);
-        default:
-            break;
-    }
-    if (pseudocolor_) {
-        return (static_cast<uint32_t>(red) & 0xe0) | ((static_cast<uint32_t>(green) >> 3) & 0x1c) |
-               (static_cast<uint32_t>(blue) >> 6);
-    }
-    if (static_pseudocolor_) {
-        const uint32_t r = (static_cast<uint32_t>(red) * 15 + 127) / 255;
-        const uint32_t g = (static_cast<uint32_t>(green) * 15 + 127) / 255;
-        const uint32_t b = (static_cast<uint32_t>(blue) * 15 + 127) / 255;
-        return static_palette_lookup_[(r << 8) | (g << 4) | b];
-    }
-    const uint32_t luminance = (77U * red + 150U * green + 29U * blue + 128) >> 8;
-    if (monochrome_) {
-        const bool white = luminance >= 128;
-        return white == (fixed_.visual == FB_VISUAL_MONO10) ? 1 : 0;
-    }
-    if (grayscale_) {
-        const uint32_t maximum = (1U << info_.bits_per_pixel) - 1;
-        uint32_t value = (luminance * maximum + 127) / 255;
-        if (info_.red.msb_right != 0) {
-            uint32_t reversed = 0;
-            for (uint32_t bit = 0; bit < info_.bits_per_pixel; ++bit) {
-                reversed |= ((value >> bit) & 1U) << (info_.bits_per_pixel - bit - 1);
-            }
-            value = reversed;
-        }
-        return value;
-    }
-    auto channel = [](uint8_t value, const fb_bitfield& field) -> uint32_t {
-        if (field.length == 0) return 0;
-        const uint64_t maximum = field.length == 32 ? UINT32_MAX : (1ULL << field.length) - 1;
-        uint32_t quantized =
-                static_cast<uint32_t>((static_cast<uint64_t>(value) * maximum + 127) / 255);
-        if (field.msb_right != 0) {
-            uint32_t reversed = 0;
-            for (uint32_t bit = 0; bit < field.length; ++bit) {
-                reversed |= ((quantized >> bit) & 1U) << (field.length - bit - 1);
-            }
-            quantized = reversed;
-        }
-        return static_cast<uint32_t>(static_cast<uint64_t>(quantized) << field.offset);
-    };
-    return channel(red, info_.red) | channel(green, info_.green) | channel(blue, info_.blue) |
-           channel(alpha, info_.transp);
-}
-
-void FbdevDevice::WritePixel(uint8_t* row, uint32_t x, uint32_t pixel) const {
-    const uint32_t bits_per_pixel = info_.bits_per_pixel;
-    const uint64_t first_bit = static_cast<uint64_t>(x) * bits_per_pixel;
-    if (bits_per_pixel < 8 && 8 % bits_per_pixel == 0 && (monochrome_ || grayscale_)) {
-        const uint32_t pixels_per_byte = 8 / bits_per_pixel;
-        uint32_t slot = x % pixels_per_byte;
-        if (!reverse_pixels_in_byte_) slot = pixels_per_byte - slot - 1;
-        const uint32_t shift = slot * bits_per_pixel;
-        const uint8_t mask = static_cast<uint8_t>(((1U << bits_per_pixel) - 1) << shift);
-        uint8_t& byte = row[first_bit / 8];
-        byte = static_cast<uint8_t>((byte & ~mask) | ((pixel << shift) & mask));
-        return;
-    }
-    if ((bits_per_pixel & 7U) == 0) {
-        memcpy(row + first_bit / 8, &pixel, bits_per_pixel / 8);
-        return;
-    }
-    for (uint32_t bit = 0; bit < bits_per_pixel; ++bit) {
-        const uint64_t destination_bit = first_bit + bit;
-        uint8_t& byte = row[destination_bit / 8];
-        const uint8_t mask = static_cast<uint8_t>(1U << (destination_bit & 7U));
-        if (((pixel >> bit) & 1U) != 0) {
-            byte |= mask;
-        } else {
-            byte &= static_cast<uint8_t>(~mask);
-        }
-    }
-}
-
 bool FbdevDevice::Copy(const ImportedBuffer& source, uint8_t* destination,
                        const std::vector<DamageRect>& damage) {
     const BufferLayout& layout = source.view().layout;
-    if (layout.planes.size() != 1) return false;
-    uint64_t source_row_bytes;
-    switch (layout.format) {
-        case PixelFormat::RGBA_8888:
-        case PixelFormat::RGBX_8888:
-        case PixelFormat::BGRA_8888:
-            source_row_bytes = static_cast<uint64_t>(layout.width) * 4;
-            break;
-        case PixelFormat::RGB_888:
-            source_row_bytes = static_cast<uint64_t>(layout.width) * 3;
-            break;
-        case PixelFormat::RGB_565:
-            source_row_bytes = static_cast<uint64_t>(layout.width) * 2;
-            break;
-        default:
-            return false;
-    }
+    const std::optional<SourceFormat> format = ScanoutSourceFormat(layout.format);
+    if (layout.planes.size() != 1 || !format) return false;
+    const uint64_t source_row_bytes =
+            static_cast<uint64_t>(layout.width) * SourceBytesPerPixel(*format);
     const PlaneInfo& plane = layout.planes[0];
     const uint64_t required =
             static_cast<uint64_t>(layout.height - 1) * plane.stride + source_row_bytes;
@@ -747,55 +662,8 @@ bool FbdevDevice::Copy(const ImportedBuffer& source, uint8_t* destination,
         return false;
     }
     const uint8_t* pixels = source.pixels() + plane.offset;
-    const uint32_t source_stride = layout.planes[0].stride;
     for (const DamageRect& rect : damage) {
-        for (uint32_t y = rect.top; y < rect.bottom; ++y) {
-            const uint8_t* source_row = pixels + static_cast<uint64_t>(y) * source_stride;
-            uint8_t* destination_row = destination + static_cast<uint64_t>(y) * fixed_.line_length;
-            for (uint32_t x = rect.left; x < rect.right; ++x) {
-                uint8_t red = 0;
-                uint8_t green = 0;
-                uint8_t blue = 0;
-                uint8_t alpha = 255;
-                switch (layout.format) {
-                    case PixelFormat::RGBA_8888:
-                        red = source_row[x * 4];
-                        green = source_row[x * 4 + 1];
-                        blue = source_row[x * 4 + 2];
-                        alpha = source_row[x * 4 + 3];
-                        break;
-                    case PixelFormat::RGBX_8888:
-                        red = source_row[x * 4];
-                        green = source_row[x * 4 + 1];
-                        blue = source_row[x * 4 + 2];
-                        break;
-                    case PixelFormat::BGRA_8888:
-                        blue = source_row[x * 4];
-                        green = source_row[x * 4 + 1];
-                        red = source_row[x * 4 + 2];
-                        alpha = source_row[x * 4 + 3];
-                        break;
-                    case PixelFormat::RGB_888:
-                        red = source_row[x * 3];
-                        green = source_row[x * 3 + 1];
-                        blue = source_row[x * 3 + 2];
-                        break;
-                    case PixelFormat::RGB_565: {
-                        uint16_t value;
-                        memcpy(&value, source_row + x * 2, sizeof(value));
-                        red = Expand5((value >> 11) & 0x1f);
-                        green = Expand6((value >> 5) & 0x3f);
-                        blue = Expand5(value & 0x1f);
-                        break;
-                    }
-                    default:
-                        return false;
-                }
-                if (swap_red_blue_) std::swap(red, blue);
-                const uint32_t output = Pack(red, green, blue, alpha);
-                WritePixel(destination_row, x, output);
-            }
-        }
+        converter_.Convert(*format, pixels, plane.stride, destination, fixed_.line_length, rect);
     }
     return true;
 }

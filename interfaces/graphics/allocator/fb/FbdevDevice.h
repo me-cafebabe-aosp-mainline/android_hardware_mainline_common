@@ -17,15 +17,9 @@
 #include <vector>
 
 #include "Buffer.h"
+#include "PixelConverter.h"
 
 namespace fb {
-
-struct DamageRect {
-    uint32_t left;
-    uint32_t top;
-    uint32_t right;
-    uint32_t bottom;
-};
 
 class ImportedBuffer {
   public:
@@ -89,8 +83,6 @@ class FbdevDevice {
     bool SaveCurrentFrame();
     bool RestoreCurrentFrame();
     int64_t QueryVblank(int64_t fallback_timestamp_ns);
-    uint32_t Pack(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha) const;
-    void WritePixel(uint8_t* row, uint32_t x, uint32_t pixel) const;
 
     android::base::unique_fd fd_;
     std::string path_;
@@ -109,7 +101,6 @@ class FbdevDevice {
     bool static_pseudocolor_ = false;
     bool monochrome_ = false;
     bool grayscale_ = false;
-    bool reverse_pixels_in_byte_ = false;
     uint32_t fourcc_ = 0;
     uint8_t clear_pixel_ = 0;
     bool pan_supported_ = false;
@@ -133,7 +124,7 @@ class FbdevDevice {
     std::vector<uint16_t> saved_cmap_green_;
     std::vector<uint16_t> saved_cmap_blue_;
     std::vector<uint16_t> saved_cmap_alpha_;
-    std::vector<uint8_t> static_palette_lookup_;
+    PixelConverter converter_;
     std::vector<uint8_t> last_frame_;
     std::string backlight_path_;
     uint32_t backlight_max_ = 0;

@@ -49,6 +49,10 @@ client-composition-only Composer3 V5 stack for legacy fbdev systems.
 - FOURCC requires capability, type, visual, format, zero-bitfield, bpp, stride,
   and little-endian agreement. Keep the whitelist packed RGB-only; reject
   unknown, big-endian, YUV, and planar layouts.
+- Keep client-target conversion in `PixelConverter` as per-channel tables
+  built once per device plus an optional final lookup. New output modes must
+  fit that form and stay bit-exact with the documented formulas; red/blue
+  swapping is a table exchange.
 - Report only valid fbdev rotations. Keep config and copy dimensions in fb
   memory coordinates; Composer physical orientation supplies the logical swap,
   so never rotate the copied client target a second time.
