@@ -77,6 +77,8 @@ class MetadataFileLock {
     ~MetadataFileLock() {
         if (locked_) flock(fd_, LOCK_UN);
     }
+    MetadataFileLock(const MetadataFileLock&) = delete;
+    MetadataFileLock& operator=(const MetadataFileLock&) = delete;
     bool locked() const { return locked_; }
 
   private:
@@ -286,9 +288,18 @@ int32_t Mapper::getStandardMetadata(buffer_handle_t buffer, int64_t type, void* 
 
 int32_t Mapper::Get(const ImportedBuffer& buffer, StandardMetadataType type, void* data,
                     size_t size) {
-    std::lock_guard metadata_lock(metadata_mutex_);
-    MetadataFileLock file_lock(buffer.view.metadata_fd, LOCK_SH);
-    if (!file_lock.locked()) return -AIMAPPER_ERROR_NO_RESOURCES;
+    // Only the values that setStandardMetadata() can change need the locks;
+    // everything else is fixed at allocation and is read on hot paths.
+    const bool shared_mutable =
+            type == StandardMetadataType::DATASPACE || type == StandardMetadataType::BLEND_MODE ||
+            type == StandardMetadataType::SMPTE2086 || type == StandardMetadataType::CTA861_3;
+    std::unique_lock metadata_lock(metadata_mutex_, std::defer_lock);
+    std::optional<MetadataFileLock> file_lock;
+    if (shared_mutable) {
+        metadata_lock.lock();
+        file_lock.emplace(buffer.view.metadata_fd, LOCK_SH);
+        if (!file_lock->locked()) return -AIMAPPER_ERROR_NO_RESOURCES;
+    }
     const fb::BufferLayout& layout = buffer.view.layout;
     auto provider = [&]<StandardMetadataType T>(auto&& provide) -> int32_t {
         if constexpr (T == StandardMetadataType::BUFFER_ID)
