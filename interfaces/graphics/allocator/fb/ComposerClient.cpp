@@ -31,6 +31,7 @@
 #include <limits>
 #include <set>
 #include <sstream>
+#include <utility>
 
 namespace aidl::android::hardware::graphics::composer3::impl {
 namespace {
@@ -446,10 +447,20 @@ ndk::ScopedAStatus ComposerClient::executeCommands(const std::vector<DisplayComm
             continue;
         }
         DisplayState& state = context->state;
-        const auto saved_layers = state.layers;
-        const auto saved_slots = state.target_slots;
+        // Snapshot only what this command can change; it runs for every frame.
+        std::optional<std::map<int64_t, LayerState>> saved_layers;
+        if (!command.layers.empty() || command.acceptDisplayChanges) saved_layers = state.layers;
+        std::optional<std::vector<fb::DamageRect>> saved_damage;
+        std::optional<std::pair<size_t, std::shared_ptr<fb::ImportedBuffer>>> saved_slot;
+        if (command.clientTarget) {
+            saved_damage = state.target_damage;
+            const Buffer& buffer = command.clientTarget->buffer;
+            if (buffer.handle && buffer.slot >= 0 &&
+                static_cast<size_t>(buffer.slot) < state.target_slots.size()) {
+                saved_slot.emplace(buffer.slot, state.target_slots[buffer.slot]);
+            }
+        }
         const auto saved_target = state.target;
-        const auto saved_damage = state.target_damage;
         const int64_t saved_next_layer = state.next_layer;
         const ValidationState saved_validation = state.validation;
         ::android::base::unique_fd saved_fence(
@@ -459,10 +470,13 @@ ndk::ScopedAStatus ComposerClient::executeCommands(const std::vector<DisplayComm
             continue;
         }
         auto restore = [&] {
-            state.layers = saved_layers;
-            state.target_slots = saved_slots;
+            if (saved_layers) state.layers = std::move(*saved_layers);
+            // The slot count can change while a present waits without the lock.
+            if (saved_slot && saved_slot->first < state.target_slots.size()) {
+                state.target_slots[saved_slot->first] = std::move(saved_slot->second);
+            }
             state.target = saved_target;
-            state.target_damage = saved_damage;
+            if (saved_damage) state.target_damage = std::move(*saved_damage);
             state.next_layer = saved_next_layer;
             state.validation = saved_validation;
             state.target_fence = std::move(saved_fence);
