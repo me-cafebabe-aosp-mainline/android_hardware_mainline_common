@@ -133,6 +133,8 @@ class StreamMainline : public StreamCommonImpl {
     // Worker thread: picks up changed output configs; closes the devices
     // (for EnsureDevicesReady() to reopen) when a channel count changes.
     void ApplyOutputConfigChanges();
+    // Input streams only: keeps the reported position from going back.
+    void ClampInputPosition(StreamDescriptor::Position* position);
     const char* Tag() const { return is_input_ ? "[in] " : "[out] "; }
 
     const StreamDeps deps_;
@@ -174,6 +176,9 @@ class StreamMainline : public StreamCommonImpl {
     bool pcms_opened_ = false;
     NullDevice null_device_;
     bool null_running_ = false;
+    // Highest frame position reported for an input stream, which never goes
+    // back (refinePosition()).
+    int64_t last_input_frames_ = 0;
     // OutputConfigs::version() the open processors follow.
     uint64_t output_configs_version_ = 0;
 };
