@@ -36,6 +36,19 @@ prada, land) and sm7150 (davinci) phones; see the platform notes below.
    regex relabelled by ueventd) in `device/mainline/common` are unverified:
    check `ls -lZ /sys/class/leds/*:flash*/` on a device with a flash.
 
+3. With `include_all_permission_xmls` (the generic target) the device claims
+   a back, a front and an external camera, whatever it has. CameraX (Aperture)
+   checks that a camera exists for each claimed facing, and retries for about
+   5 s: a cold start of the camera app takes that long to show a preview, and
+   switching modes (e.g. to video) before that crashes the app (`Camera
+   configuration is null`). Seen on a VM with a USB camera (back, no front)
+   and on a Lenovo G480 laptop (front, no back); a PC with only a capture card
+   crashed with `Unable to find camera with id 100`. It is not a HAL fault:
+   the generic target claims everything on purpose, and a product with fewer
+   cameras should ship only the feature XMLs it matches (see README,
+   "Packaging"). A HAL side workaround would have to publish the camera a
+   second time under the missing facing; nothing does that.
+
 ## TODO
 
 Correctness first:
@@ -94,5 +107,7 @@ Larger features, deferred on purpose:
   tucana and toco have no camera sensors in their device trees.
 - No target device tree links a flash to a sensor (`flash-leds`), so flash
   LEDs are assigned by name (see README, "Flash and torch").
-- x86 laptops / tablets: never tested; put on hold during the initial
-  implementation. Start with UVC cameras, then IPU6.
+- x86 PCs: UVC cameras work: a VM with a USB camera, a PC with a USB capture
+  card (photo and video, after the gralloc fixes in `gbm_mesa`) and a Lenovo
+  G480 laptop (built-in UVC camera, preview only so far). Intel IPU6 laptops
+  were never tested.

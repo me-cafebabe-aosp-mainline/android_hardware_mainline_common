@@ -73,7 +73,9 @@ Soong config variables (namespace `camera_hal_mainline`):
 
 The feature XMLs claim what the device has, not what the HAL can do. Without
 `include_all_permission_xmls`, the product installs the ones matching its
-cameras itself. No XML claims autofocus or a capability level above `LIMITED`,
+cameras itself. With it, a device that lacks a claimed facing makes CameraX
+based apps (such as Aperture) wait about 5 s on a cold start, and crash if
+switched to video before they are ready. No XML claims autofocus or a capability level above `LIMITED`,
 as the HAL does not provide them. AOSP has no feature XML for a flash alone
 (`android.hardware.camera.flash-autofocus` claims autofocus as well).
 
