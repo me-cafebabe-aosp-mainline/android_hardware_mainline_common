@@ -546,7 +546,7 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength strength,
     std::thread([=, sharedThis = this->ref<Vibrator>()] {
         if (effect == Effect::DOUBLE_CLICK) {
             int32_t singleDuration = durationMs / 3;
-            int32_t gapDuration = durationMs / 3;
+            int32_t gapDuration = durationMs - 2 * singleDuration;
 
             uploadEffect(singleDuration, amplitude);
             playEffect(mLastEffectId);
