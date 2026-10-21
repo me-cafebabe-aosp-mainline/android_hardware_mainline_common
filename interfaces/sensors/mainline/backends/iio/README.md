@@ -39,10 +39,10 @@ hardware configuration):
 
    | IIO channels                                   | Android type                | Unit conversion            |
    |------------------------------------------------|-----------------------------|----------------------------|
-   | `accel_x/y/z`                                  | `ACCELEROMETER`             | m/s² → m/s²                |
+   | `accel_x/y/z`                                  | `ACCELEROMETER`             | m/s² → -m/s² (see below)   |
    | `anglvel_x/y/z`                                | `GYROSCOPE`                 | rad/s → rad/s              |
    | `magn_x/y/z`                                   | `MAGNETIC_FIELD`            | Gauss → µT (×100)          |
-   | `gravity_x/y/z`                                | `GRAVITY`                   | m/s²                       |
+   | `gravity_x/y/z`                                | `GRAVITY`                   | m/s² → -m/s²               |
    | `illuminance`, else `intensity_both`, else `intensity_clear` | `LIGHT`       | lux                        |
    | `proximity`                                    | `PROXIMITY`                 | see below                  |
    | `pressure`                                     | `PRESSURE`                  | kPa → hPa (×10)            |
@@ -51,6 +51,10 @@ hardware configuration):
    | `rot_quaternion`                               | `ROTATION_VECTOR` family    | as is (see quirks)         |
    | `angl` (HID hinge)                             | `HINGE_ANGLE`               | rad → degrees              |
    | `steps`                                        | `STEP_COUNTER`              | count                      |
+
+   IIO reports acceleration as the gravity vector (device upright: `y = -g`),
+   Android as its reaction (`y = +g`), so `accel` and `gravity` are negated
+   before the mount matrix (which is linear, so the order does not matter).
 
    A `temp` channel is only exposed when the device has no other sensor
    channels (an IMU die temperature is not an ambient temperature); set

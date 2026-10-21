@@ -379,10 +379,13 @@ std::vector<IioSensorSpec> MatchIioSensorSpecs(const std::vector<IioChannelId>& 
 
     // Units: IIO accel is m/s^2, anglvel rad/s, magn Gauss (Android: uT),
     // gravity m/s^2.
-    add_vec3("accel", SensorType::ACCELEROMETER, 1.0);
+    // IIO accelerometers (and the HID gravity channel) report the gravity
+    // vector, e.g. y = -g with the device upright and z = -g lying face up,
+    // while Android reports the reaction to it (y = +g, z = +g). Negate them.
+    add_vec3("accel", SensorType::ACCELEROMETER, -1.0);
     add_vec3("anglvel", SensorType::GYROSCOPE, 1.0);
     add_vec3("magn", SensorType::MAGNETIC_FIELD, 100.0);
-    add_vec3("gravity", SensorType::GRAVITY, 1.0);
+    add_vec3("gravity", SensorType::GRAVITY, -1.0);
 
     // Light: illuminance is lux. HID sensors only expose "intensity_both"
     // which they also fill with lux (see iio-sensor-proxy).
