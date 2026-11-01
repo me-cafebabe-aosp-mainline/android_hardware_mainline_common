@@ -21,5 +21,5 @@ Add packages to `PRODUCT_PACKAGES`, and build the code with AOSP.
 
 | Property | Meaning |
 |----------|---------|
-| `vendor.gralloc.device` | The DRM node to allocate on, `/dev/dri/renderD128` by default |
+| `vendor.gralloc.device` | The DRM node to allocate on, `/dev/dri/renderD128` by default. Point it at the primary node of the display (`/dev/dri/card0`) when the display and the GPU are separate devices: Mesa then renders on the GPU through kmsro and allocates scanout buffers on the display, so the display can always import them. The allocator drops DRM master after opening the node, so the composer can still take it |
 | `vendor.gralloc.scanout_linear` | `true` allocates the buffers for scanout as linear, for a display that is on another device than the allocation and cannot use the modifiers of the GPU |

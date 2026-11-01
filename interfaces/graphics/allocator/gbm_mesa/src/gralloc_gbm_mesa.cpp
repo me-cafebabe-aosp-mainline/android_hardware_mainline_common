@@ -27,6 +27,7 @@
 #include <cutils/properties.h>
 #include <hardware/gralloc.h>
 #include <sync/sync.h>
+#include <xf86drm.h>
 
 #include "log.h"
 
@@ -59,6 +60,10 @@ int gralloc_gbm_device_init() {
         return -EINVAL;
     }
     log_v("opened device %s, fd=%d", device_path, fd);
+
+    // Opening a primary node makes the first opener DRM master. Allocating
+    // never needs master, and holding it would lock the composer out.
+    drmDropMaster(fd);
 
     if (gralloc_gbm_device_create(fd, &dev)) {
         log_e("Failed to initialize the gralloc_gm because cannot create GBM device!");
