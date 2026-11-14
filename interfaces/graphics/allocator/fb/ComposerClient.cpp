@@ -541,8 +541,9 @@ ndk::ScopedAStatus ComposerClient::executeCommands(const std::vector<DisplayComm
             // this display from the thread running this batch.
             lock.unlock();
             if (expected_present_ns > 0) {
-                timespec deadline{.tv_sec = expected_present_ns / 1000000000LL,
-                                  .tv_nsec = expected_present_ns % 1000000000LL};
+                timespec deadline{
+                        .tv_sec = static_cast<time_t>(expected_present_ns / 1000000000LL),
+                        .tv_nsec = static_cast<long>(expected_present_ns % 1000000000LL)};
                 while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, nullptr) ==
                        EINTR) {
                 }
@@ -765,8 +766,9 @@ ndk::ScopedAStatus ComposerClient::setActiveConfigWithConstraints(
     if (config != kConfig) return Error(kBadConfig);
     if (constraints.seamlessRequired) return Error(IComposerClient::EX_SEAMLESS_NOT_POSSIBLE);
     if (constraints.desiredTimeNanos > 0) {
-        timespec deadline{.tv_sec = constraints.desiredTimeNanos / 1000000000LL,
-                          .tv_nsec = constraints.desiredTimeNanos % 1000000000LL};
+        timespec deadline{
+                .tv_sec = static_cast<time_t>(constraints.desiredTimeNanos / 1000000000LL),
+                .tv_nsec = static_cast<long>(constraints.desiredTimeNanos % 1000000000LL)};
         while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, nullptr) == EINTR) {
         }
     }

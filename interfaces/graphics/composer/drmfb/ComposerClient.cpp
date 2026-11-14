@@ -566,8 +566,10 @@ ndk::ScopedAStatus ComposerClient::executeCommands(const std::vector<DisplayComm
         if (command.presentDisplay) {
             if (command.expectedPresentTime && command.expectedPresentTime->timestampNanos > 0) {
                 timespec deadline{
-                        .tv_sec = command.expectedPresentTime->timestampNanos / 1000000000LL,
-                        .tv_nsec = command.expectedPresentTime->timestampNanos % 1000000000LL};
+                        .tv_sec = static_cast<time_t>(
+                                command.expectedPresentTime->timestampNanos / 1000000000LL),
+                        .tv_nsec = static_cast<long>(
+                                command.expectedPresentTime->timestampNanos % 1000000000LL)};
                 while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, nullptr) ==
                        EINTR) {
                 }
@@ -853,8 +855,9 @@ ndk::ScopedAStatus ComposerClient::setActiveConfigWithConstraints(
                                             : IComposerClient::EX_SEAMLESS_NOT_ALLOWED);
     }
     if (constraints.desiredTimeNanos > 0) {
-        timespec deadline{.tv_sec = constraints.desiredTimeNanos / 1000000000LL,
-                          .tv_nsec = constraints.desiredTimeNanos % 1000000000LL};
+        timespec deadline{
+                .tv_sec = static_cast<time_t>(constraints.desiredTimeNanos / 1000000000LL),
+                .tv_nsec = static_cast<long>(constraints.desiredTimeNanos % 1000000000LL)};
         while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, nullptr) == EINTR) {
         }
     }
